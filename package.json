@@ -1,7 +1,5 @@
 {
   "name": "hexo-site",
-  "version": "0.0.0",
-  "private": true,
   "hexo": {
     "version": "3.8.0"
   },
@@ -19,7 +17,9 @@
   },
   "scripts": {
     "serve": "hexo serve",
-    "postpublish": "hexo generate",
-    "publish": "hexo deploy"
-  }
+    "predeploy": "hexo generate",
+    "deploy": "hexo deploy",
+    "postdeploy": "hexo clean"
+  },
+  "license": "MIT"
 }
