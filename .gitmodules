@@ -1,0 +1,3 @@
+[submodule "themes/cactus"]
+	path = themes/cactus
+	url = https://github.com/Almo7aya/hugo-theme-cactus.git
