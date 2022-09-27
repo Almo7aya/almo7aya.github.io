@@ -1,8 +1,8 @@
 baseURL = "/"
 languageCode = "en-us"
-title = "Cactus theme example"
+title = "Almo7aya (Ali Almohaya)"
 theme = "cactus"
-copyright = "You" # cactus will use title if copyright is not set
+copyright = "Almo7aya" # cactus will use title if copyright is not set
 disqusShortname = "example" # Used when comments is enabled. Cactus will use site title if not set
 # googleAnalytics = "UA-1234-5"
 
@@ -18,11 +18,6 @@ weight = 1
 name = "Writings"
 url = "/posts"
 weight = 2
-
-[[menu.main]]
-name = "Tags"
-url = "/tags"
-weight = 3
 
 [[menu.main]]
 name = "About"
@@ -53,13 +48,13 @@ weight = 4
   showAllPostsArchive = false # default
 
   # Home page settings
-  description = "Hugo is a general-purpose website framework. Technically speaking, Hugo is a static site generator. Unlike systems that dynamically build a page with each visitor request, Hugo builds pages when you create or update your content. Since websites are viewed far more often than they are edited, Hugo is designed to provide an optimal viewing experience for your website’s end users and an ideal writing experience for website authors."
+  description = "I'm a senior web engineer @ anghami, I love to create"
   mainSection = "posts" # your main section
   showAllPostsOnHomePage = false # default
   postsOnHomePage = 5 # this option will be ignored if showAllPostsOnHomePage is set to true
   tagsOverview = true # show tags overview by default.
   showProjectsList = true # show projects list by default (if projects data file exists).
-  projectsUrl = "https://github.com/gohugoio" # title link for projects list
+  projectsUrl = "https://github.com/almo7aya" # title link for projects list
 
   # https://gohugo.io/functions/format/#hugo-date-and-time-templating-reference
   dateFormat = "2006-01-02" # default
@@ -69,7 +64,7 @@ weight = 4
   showReadTime = true # default
 
   [params.comments]
-    enabled = true # default
+    enabled = false # default
     engine = "cactus_comments" # only disqus, utterances, and cactus_comments is supported
     [params.comments.utterances]
       repo = "<github_username>/<github_reponame>"
@@ -84,10 +79,10 @@ weight = 4
   # https://fontawesome.com/icons?d=gallery&s=brands
   [[params.social]]
     name = "github"
-    link = "https://github.com/gohugoio"
+    link = "https://github.com/almo7aya"
   [[params.social]]
     name = "linkedin"
-    link = "https://www.linkedin.com/company/github/"
+    link = "https://www.linkedin.com/in/almo7aya/"
   [[params.social]]
     name = "email"
-    link = "example@example.com"  # no need for "mailto:" in the head
+    link = "alialmohaya@gmail.com"  # no need for "mailto:" in the head
