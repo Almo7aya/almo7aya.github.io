@@ -48,7 +48,7 @@ weight = 4
   avatar = "/images/avatar.jpg"
 
   # Home page settings
-  description = "Senior web engineer supercharged with typescript, rust, swift, and lua, with real world experience on various technologies, love to create and contribute to the open source community, working currectly @[anghami](https://anghami.com)."
+  description = "Senior web engineer supercharged with typescript, rust, swift, and lua, with hands on experience on various technologies, love to create and contribute to the open source community, working currectly @[anghami](https://anghami.com)."
   mainSection = "posts" # your main section
   showAllPostsOnHomePage = false # default
   postsOnHomePage = 5 # this option will be ignored if showAllPostsOnHomePage is set to true
