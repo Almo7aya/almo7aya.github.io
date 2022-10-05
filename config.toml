@@ -4,9 +4,9 @@ title = "almo7aya.md"
 theme = "cactus"
 copyright = "Almo7aya" # cactus will use title if copyright is not set
 disqusShortname = "example" # Used when comments is enabled. Cactus will use site title if not set
-# googleAnalytics = "UA-1234-5"
+googleAnalytics = "G-KLG0T39J77"
 
-# summaryLength = 2
+summaryLength = 2
 
 # Main menu which appears below site header.
 [[menu.main]]
@@ -52,7 +52,7 @@ weight = 4
   mainSection = "posts" # your main section
   showAllPostsOnHomePage = false # default
   postsOnHomePage = 5 # this option will be ignored if showAllPostsOnHomePage is set to true
-  tagsOverview = true # show tags overview by default.
+  tagsOverview = false # show tags overview by default.
   showProjectsList = true # show projects list by default (if projects data file exists).
   projectsUrl = "https://github.com/almo7aya" # title link for projects list
 
