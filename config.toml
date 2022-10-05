@@ -31,6 +31,7 @@ summaryLength = 2
   googleAnalyticsAsync = true # use asynchronous tracking. Synchronous tracking by default
   showAllPostsArchive = true # default
   avatar = "/images/avatar.jpg"
+  tocInline = true
 
   # Home page settings
   description = "Senior web engineer supercharged with typescript, rust, swift, and lua, with hands on experience on various technologies, love to create and contribute to the open source community, working @ [anghami](https://anghami.com)."
