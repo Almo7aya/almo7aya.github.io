@@ -6,6 +6,7 @@ copyright = "Almo7aya" # cactus will use title if copyright is not set
 disqusShortname = "example" # Used when comments is enabled. Cactus will use site title if not set
 googleAnalytics = "G-KLG0T39J77"
 author = "Almo7aya"
+disableKinds = ["taxonomy", "taxonomyTerm"]
 
 summaryLength = 2
 
