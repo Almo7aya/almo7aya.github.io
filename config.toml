@@ -9,22 +9,6 @@ author = "Almo7aya"
 
 summaryLength = 2
 
-# Main menu which appears below site header.
-[[menu.main]]
-name = "Home"
-url = "/"
-weight = 1
-
-[[menu.main]]
-name = "Writings"
-url = "/posts"
-weight = 2
-
-[[menu.main]]
-name = "About"
-url = "/about"
-weight = 4
-
 [markup]
   [markup.tableOfContents]
     endLevel = 4
@@ -76,7 +60,7 @@ weight = 4
     [params.comments.utterances]
       repo = "almo7aya/almo7aya.github.io"
       label = "almo7aya.dev" # you can use however you want to label your name in your repo's issues
-      theme = "dark-blue"
+      theme = "github-dark"
     [params.comments.cactuscomments]
       siteName = "your_cactus_comments_sitename" # see https://cactus.chat/ on how to register your site name
       #serverUrl = "" # Defaults to https://matrix.cactus.chat:8448 (Cactus Chat public server)
