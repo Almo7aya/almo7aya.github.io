@@ -1,6 +1,6 @@
 baseURL = "/"
 languageCode = "en-us"
-title = "Almo7aya (Ali Almohaya)"
+title = "almo7aya.md"
 theme = "cactus"
 copyright = "Almo7aya" # cactus will use title if copyright is not set
 disqusShortname = "example" # Used when comments is enabled. Cactus will use site title if not set
@@ -44,10 +44,11 @@ weight = 4
   colortheme = "dark" # dark, light, white, or classic
   rss = true # generate rss feed. default value is false
   googleAnalyticsAsync = true # use asynchronous tracking. Synchronous tracking by default
-  showAllPostsArchive = false # default
+  showAllPostsArchive = true # default
+  avatar = "/images/avatar.jpg"
 
   # Home page settings
-  description = "I'm a senior web engineer @[anghami](https://anghami.com)"
+  description = "Senior web engineer supercharged with typescript, rust, swift, and lua, with real world experience on various technologies, love to create and contribute to the open source community, working currectly @[anghami](https://anghami.com)."
   mainSection = "posts" # your main section
   showAllPostsOnHomePage = false # default
   postsOnHomePage = 5 # this option will be ignored if showAllPostsOnHomePage is set to true
@@ -55,12 +56,18 @@ weight = 4
   showProjectsList = true # show projects list by default (if projects data file exists).
   projectsUrl = "https://github.com/almo7aya" # title link for projects list
 
+  footeremail = "alialmohaya@gmail.com"
+  footergithub = "https://github.com/almo7aya"
+  footertwitter = "https://twitter.com/almo7aya"
+  footerlinkedin = "https://linkedin.com/in/almo7aya"
+
   # https://gohugo.io/functions/format/#hugo-date-and-time-templating-reference
   dateFormat = "2006-01-02" # default
 
   # Post page settings
   show_updated = true # default
   showReadTime = true # default
+  mainSectionTitle = "## Posts"
 
   [params.comments]
     enabled = false # default
