@@ -37,7 +37,7 @@ weight = 4
     lineNos = true
     lineNumbersInTable = false
     noClasses = true
-    style = "dracula"
+    style = "gruvbox"
     tabWidth = 4
 
 [params]
