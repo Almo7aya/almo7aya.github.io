@@ -8,7 +8,7 @@
     {
       "name": "neogruvbox.nvim",
       "url": "https://github.com/Almo7aya/neogruvbox.nvim",
-      "desc": "Modernized gruvbox color scheme for neovim and its popular plugins"
+      "desc": "Modernized gruvbox color scheme for neovim and its popular plugins."
     }
   ]
 }
