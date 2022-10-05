@@ -1,14 +1,14 @@
 {
   "list": [
     {
-      "name":"Hugo",
-      "url":"https://gohugo.io/",
-      "desc":"The world’s fastest framework for building websites."
+      "name": "openingh.nvim",
+      "url": "https://github.com/Almo7aya/openingh.nvim",
+      "desc": "neovim plug that gives you two simple commands `:OpenInGHRepo` and `:OpenInGHFile` to easily open the current file or repo page in GitHub."
     },
     {
-      "name":"Hugo Themes",
-      "url":"https://github.com/gohugoio/hugoThemes",
-      "desc":"A curated directory of Hugo themes"
+      "name": "neogruvbox.nvim",
+      "url": "https://github.com/Almo7aya/neogruvbox.nvim",
+      "desc": "Modernized gruvbox color scheme for neovim and its popular plugins"
     }
   ]
 }
