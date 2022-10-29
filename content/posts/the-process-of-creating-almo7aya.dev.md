@@ -6,7 +6,7 @@ draft: false
 
 ## Why
 
-I have been thinking about creating a personal website for myself to show my projects and to write about the interesting stuff I found online, and maybe to write some blogs about my learnings and the other tools that I'm using on my daily basies.
+I have been thinking about creating a personal website for myself to show my projects and to write about the interesting stuff I found online, and maybe to write some blogs about my learnings and the other tools that I'm using on my daily basis.
 
 ## Static Site Generator
 
