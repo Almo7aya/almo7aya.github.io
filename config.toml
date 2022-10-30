@@ -1,6 +1,6 @@
 baseURL = "/"
 languageCode = "en-us"
-title = "almo7aya.md"
+title = "almo7aya.dev"
 theme = "cactus"
 copyright = "Almo7aya" # cactus will use title if copyright is not set
 disqusShortname = "example" # Used when comments is enabled. Cactus will use site title if not set
