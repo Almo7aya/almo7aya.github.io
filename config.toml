@@ -32,11 +32,12 @@ summaryLength = 2
   googleAnalyticsAsync = true # use asynchronous tracking. Synchronous tracking by default
   showAllPostsArchive = true # default
   avatar = "/images/avatar.jpg"
-  # tocInline = true
+  tocInline = false
 
   # Home page settings
-  description = "Senior web engineer supercharged with typescript, rust, swift, and lua, with hands on experience on various technologies, love to create and contribute to the open source community, working @ [anghami](https://anghami.com)."
+  description = "Senior web engineer supercharged with typescript, rust, and lua, with hands-on experience in various technologies, Working @ [anghami](https://anghami.com)."
   mainSection = "posts" # your main section
+  aboutSection = "about"
   showAllPostsOnHomePage = false # default
   postsOnHomePage = 5 # this option will be ignored if showAllPostsOnHomePage is set to true
   tagsOverview = false # show tags overview by default.
