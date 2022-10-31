@@ -2,13 +2,13 @@
   "list": [
     {
       "name": "openingh.nvim",
-      "url": "https://github.com/Almo7aya/openingh.nvim ",
-      "desc": "![GitHub Repo stars](https://img.shields.io/github/stars/almo7aya/openingh.nvim?color=%239f7b3d&style=flat-square): neovim plugin that gives you two simple commands `:OpenInGHRepo` and `:OpenInGHFile` to easily open the current file or repo page in GitHub."
+      "url": "https://github.com/Almo7aya/openingh.nvim",
+      "desc": " ![GitHub Repo stars](https://img.shields.io/github/stars/almo7aya/openingh.nvim?color=%239f7b3d&style=flat-square): neovim plugin that gives you two simple commands `:OpenInGHRepo` and `:OpenInGHFile` to easily open the current file or repo page in GitHub."
     },
     {
       "name": "neogruvbox.nvim",
-      "url": "https://github.com/Almo7aya/neogruvbox.nvim ",
-      "desc": "![GitHub Repo stars](https://img.shields.io/github/stars/almo7aya/neogruvbox.nvim?color=%239f7b3d&style=flat-square): Modernized gruvbox color scheme for neovim and its popular plugins."
+      "url": "https://github.com/Almo7aya/neogruvbox.nvim",
+      "desc": " ![GitHub Repo stars](https://img.shields.io/github/stars/almo7aya/neogruvbox.nvim?color=%239f7b3d&style=flat-square): Modernized gruvbox color scheme for neovim and its popular plugins."
     }
   ]
 }
