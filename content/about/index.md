@@ -17,13 +17,11 @@ check my [config](https://github.com/Almo7aya/dotfiles/blob/master/.config/lvim/
 
 Fixing broken github actions workflows, configuring nginx proxies, and writing docker-compose.yml files;
 
-Exploring github repositories searching for interesting projects, maintaining my open-source [projects](https://github.com/almo7aya), and giving back by contributing to open-source projects that I found interesting;
+Exploring github repositories searching for interesting projects, maintaining my open-source [projects](https://github.com/almo7aya), and giving back by contributing to open-source projects that I find interesting;
 
 Reading a wide variety of potentially useless information through a few hundred RSS feeds and Wikipedia pages;
 
 Reverse-engineering apps and dealing with millions of bytecode lines just for the sake of it;
 
 In a nutshell, I build websites, apps, libraries, and plugins that are robust and reliable. I do it well.
-
-I'm very capable of writing clean, modular, scalable, tested, efficient, and well-documented code that solves real-world problems.
 
