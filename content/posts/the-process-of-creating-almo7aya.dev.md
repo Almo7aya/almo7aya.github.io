@@ -2,6 +2,7 @@
 title: "The Process Of Creating almo7aya.dev"
 date: 2022-10-05T06:42:43+03:00
 draft: false
+description: Why and how I created almo7aya.dev with more technical details
 ---
 
 ## Why

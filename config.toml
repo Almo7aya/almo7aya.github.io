@@ -7,6 +7,8 @@ disqusShortname = "example" # Used when comments is enabled. Cactus will use sit
 googleAnalytics = "G-KLG0T39J77"
 author = "Almo7aya"
 disableKinds = ["taxonomy", "taxonomyTerm"]
+buildDrafts = true
+enableRobotsTXT = true
 
 summaryLength = 2
 
@@ -38,6 +40,7 @@ summaryLength = 2
   description = "Senior web engineer supercharged with typescript, rust, and lua, with hands-on experience in various technologies, Working @ [anghami](https://anghami.com)."
   mainSection = "posts" # your main section
   aboutSection = "about"
+  readingSection = "reading"
   showAllPostsOnHomePage = false # default
   postsOnHomePage = 5 # this option will be ignored if showAllPostsOnHomePage is set to true
   tagsOverview = false # show tags overview by default.
