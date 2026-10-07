@@ -1,12 +1,22 @@
 [
   {
+    "id": "intro",
+    "title": "7INTRO",
+    "image": "intro.img",
+    "drive": "hdd",
+    "description": "a 90s demoscene intro: starfield, fire, copper bars, tunnel, sine scroller and PC speaker music",
+    "keys": "just watch · Esc restarts",
+    "size": 172544,
+    "external": false
+  },
+  {
     "id": "7os",
     "title": "7OS 0.8",
     "image": "almo7aya.img",
     "drive": "hdd",
     "description": "a small real-mode OS: 7FS filesystem, INT 1Ch clock, shell, mode 13h demo",
     "keys": "type help, dir, demo",
-    "size": 54272,
+    "size": 55296,
     "external": false
   },
   {
@@ -17,16 +27,6 @@
     "description": "the day job, in 8086: a streaming video player with RC4 DRM (key ladder, license, per-frame keys), ABR and buffering",
     "keys": "space pause, left/right seek, D drm debug, N network glitch, M sound",
     "size": 1474560,
-    "external": false
-  },
-  {
-    "id": "intro",
-    "title": "7INTRO",
-    "image": "intro.img",
-    "drive": "hdd",
-    "description": "a 90s demoscene intro: starfield, fire, copper bars, tunnel, sine scroller and PC speaker music",
-    "keys": "just watch · Esc restarts",
-    "size": 172544,
     "external": false
   },
   {
@@ -78,5 +78,17 @@
     "keys": "hold left/right to run, space restarts",
     "size": 512,
     "external": false
+  },
+  {
+    "id": "elks",
+    "title": "ELKS 0.9.2",
+    "image": "elks.img",
+    "drive": "floppy",
+    "description": "real Linux-like kernel for the 8086: ELKS, prebuilt from ghaerr/elks (GPL-2.0)",
+    "keys": "login as root, try ls /bin, ps, uname -a",
+    "size": 1474560,
+    "external": true,
+    "license": "GPL-2.0",
+    "source": "https://github.com/ghaerr/elks/releases/tag/v0.9.2"
   }
 ]

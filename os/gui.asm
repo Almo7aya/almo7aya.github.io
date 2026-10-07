@@ -2569,7 +2569,7 @@ draw_cursor:                            ; the arrow at (drawn_x, drawn_y), strai
 ;          x    y    w    h   title     text
 apps:   dw 124,   4, 192,   0, t_about,  x_about
         db K_TEXT, 0, 0, 0
-        dw 132,  44, 180,   0, t_work,   x_work
+        dw 100,  10, 214,   0, t_work,   x_work
         db K_TEXT, 0, 0, 0
         dw  70,  14, 244,   0, t_proj,   x_proj
         db K_TEXT, 0, 0, 0
@@ -2614,14 +2614,16 @@ s_gui    db "GUI", 0
 
 x_about db C(1), "Ali Almohaya", C(0), 10
         db "a.k.a. ", C(4), "Almo7aya", C(0), 10, 10
-        db "Staff web engineer at Anghami & OSN+.", 10, 10
+        db "Staff Web Engineer at Anghami & OSN+.", 10, 10
         db "From Yemen, living in Riyadh.", 10, 10
-        db "After hours: emulators, C++, GPUs and networking.", 0
+        db "Beyond the web: low-level programming, emulation, C++ and graphics, just for the fun of it.", 0
 
-x_work  db C(1), "Staff web engineer", C(0), 10
+x_work  db C(1), "Staff Web Engineer", C(0), 10
         db "at Anghami & OSN+", 10, 10
-        db "Builds apps for the web and for TVs, mostly the video player: "
-        db C(4), "playback", C(0), " and ", C(4), "DRM", C(0), ".", 0
+        db "Builds the web and smart-TV streaming apps. Specialist in video "
+        db C(4), "playback", C(0), " and ", C(4), "DRM", C(0), ", the kind of work nobody notices when it's done right.", 10, 10
+        db C(1), "Skills", C(0), 10
+        db "TypeScript, JavaScript, React, Preact, Node.js, C++, Go, Rust, Lua, Docker, CI.", 0
 
 x_proj  db BUL, " ", C(1), "KytyPS5", C(0), " open-source PS5 emulator in C++. Ali contributes fixes.", 10
         db BUL, " ", C(1), "PS5 Shader Lab", C(0), " C++20 shader regression tool.", 10
