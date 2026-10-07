@@ -1,0 +1,8 @@
+{
+  "id": "maze",
+  "title": "7MAZE",
+  "image": "maze.img",
+  "drive": "hdd",
+  "description": "a Wolfenstein-style raycaster through a gallery of Ali's work: fixed-point DDA, textured walls, distance shading, posters with info cards",
+  "keys": "arrows/WASD walk and turn, Q/E strafe, M minimap, F fps"
+}
