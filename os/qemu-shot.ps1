@@ -2,10 +2,10 @@
 #   os/qemu-shot.ps1 -Img public/os/x.img -Out shots -Steps 'wait:3000','shot:boot','type text','key:ret','mouse:10,-5,1','mon:info registers'
 #   QEMU path: $env:QEMU or D:\Trinity\x86_64-softmmu\qemu-system-x86_64.exe
 # boots an image in QEMU headless, types commands via the monitor, saves PNG screenshots
-param([string]$Img, [string]$Out, [string[]]$Steps)
+param([string]$Img, [string]$Out, [string[]]$Steps, [int]$Port = 45454)
 Add-Type -AssemblyName System.Drawing
 $q = if ($env:QEMU) { $env:QEMU } else { 'D:\Trinity\x86_64-softmmu\qemu-system-x86_64.exe' }
-$port = 45454
+$port = $Port
 $p = Start-Process $q -ArgumentList @('-drive', "format=raw,file=$Img", '-m', '2048', '-display', 'none', '-monitor', "tcp:127.0.0.1:$port,server,nowait") -PassThru -WindowStyle Hidden
 Start-Sleep -Milliseconds 1500
 $c = New-Object System.Net.Sockets.TcpClient('127.0.0.1', $port)
