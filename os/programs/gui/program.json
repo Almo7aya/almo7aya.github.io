@@ -1,0 +1,8 @@
+{
+  "id": "gui",
+  "title": "7GUI",
+  "image": "gui.img",
+  "drive": "hdd",
+  "description": "a tiny windowed desktop in mode 13h: PS/2 mouse, draggable windows, z-order, taskbar clock, pixel-art icons",
+  "keys": "double-click icons, drag title bars, Esc closes, Tab cycles, Enter opens"
+}
