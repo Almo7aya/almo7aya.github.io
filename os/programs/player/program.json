@@ -1,0 +1,8 @@
+{
+  "id": "player",
+  "title": "7PLAYER",
+  "image": "player.img",
+  "drive": "floppy",
+  "description": "the day job, in 8086: a streaming video player with RC4 DRM (key ladder, license, per-frame keys), ABR and buffering",
+  "keys": "space pause, left/right seek, D drm debug, N network glitch, M sound"
+}
