@@ -1,0 +1,220 @@
+---
+import listing from '../data/listing.json';
+import readings from '../data/readings.json';
+import Head from '../components/Head.astro';
+
+const posts = Object.values(import.meta.glob('../posts/*.md', { eager: true }))
+  .map((p: any) => ({ title: p.frontmatter.title, date: String(p.frontmatter.date).slice(0, 10), url: `/posts/${p.frontmatter.slug}/` }))
+  .sort((a, b) => b.date.localeCompare(a.date));
+const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8).padEnd(8) + ' ' + ext;
+---
+<!doctype html>
+<html lang="en">
+<Head title="Almo7aya · 7OS" description="Ali Almohaya: staff web engineer at Anghami and OSN+. This site boots 7OS, a tiny real-mode OS written in assembly, on an 8086 emulator in your browser." />
+<body>
+
+<header class="title">
+  <span class="name">Almo<span class="s7">7</span>aya</span>
+  <span class="who">Ali Almohaya · staff web engineer @ Anghami &amp; OSN+</span>
+  <span class="mode">8086 · real mode · 7OS</span>
+  <a class="ghb" href="https://github.com/Almo7aya">github.com/Almo7aya ↗</a>
+</header>
+
+<div class="desk">
+  <section class="win" id="wRegs" aria-label="Registers">
+    <span class="t">Registers</span><span class="r">8086</span>
+    <div class="regs" id="regs"></div>
+  </section>
+
+  <section class="win focus" id="wScreen" aria-label="Screen">
+    <span class="t">Screen · <b>VGA 80×25 · B800:0000</b></span><span class="r" id="kbdHint">click here and type</span>
+    <div class="crt" id="crt" tabindex="0" role="application" aria-label="7OS text screen, click and type commands"><pre id="vga" aria-live="polite"></pre></div>
+  </section>
+
+  <section class="win" id="wMsgs" aria-label="Messages">
+    <span class="t">Messages</span>
+    <div class="scroll log" id="log" aria-live="polite"></div>
+  </section>
+
+  <section class="win" id="wCode" aria-label="Code">
+    <span class="t">Code · <b>almo7aya.asm</b></span><span class="r" id="where">0000:7C00</span>
+    <div class="scroll code" id="code"></div>
+  </section>
+
+  <section class="win" id="wDocs" aria-label="Interrupt list">
+    <span class="t">Interrupt list · <b>ALMO7AYA.LST</b></span><span class="r">tabs</span>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-doc="work">INT 7Ch work</button>
+      <button type="button" role="tab" aria-selected="false" data-doc="hobbies">INT 7Dh after hours</button>
+      <button type="button" role="tab" aria-selected="false" data-doc="patches">patches</button>
+      <button type="button" role="tab" aria-selected="false" data-doc="posts">posts</button>
+    </div>
+    <div class="scroll">
+<pre class="doc" id="d-work" role="tabpanel"><span class="sep">--------W-7C00---------------------------------</span>
+<span class="hd">INT 7C - ALMO7AYA - <b>WEB &amp; TV APPS</b></span>
+	<span class="k">AH</span> = 00h
+<span class="k">Desc:</span>	streaming apps for the web and for TVs,
+	at Anghami and OSN+
+<span class="k">SeeAlso:</span> AH=01h,AH=02h
+
+<span class="sep">--------W-7C01---------------------------------</span>
+<span class="hd">INT 7C - ALMO7AYA - <b>VIDEO PLAYBACK</b></span>
+	<span class="k">AH</span> = 01h
+<span class="k">Return:</span> CF clear if the video is playing
+	CF set if it is buffering (see Watch)
+<span class="k">Desc:</span>	the video player: getting playback to
+	start fast and stay smooth
+
+<span class="sep">--------W-7C02---------------------------------</span>
+<span class="hd">INT 7C - ALMO7AYA - <b>DRM</b></span>
+	<span class="k">AH</span> = 02h
+<span class="k">Desc:</span>	protected content: getting encrypted video
+	to play wherever people watch
+<span class="k">SeeAlso:</span> AH=01h</pre>
+<pre class="doc" id="d-hobbies" role="tabpanel" hidden><span class="sep">--------H-7D00---------------------------------</span>
+<span class="hd">INT 7D - ALMO7AYA - <b>7OS</b></span>
+	<span class="k">AH</span> = 00h
+<span class="k">Desc:</span>	the OS on the screen above: two stages, NASM,
+	8086 real mode. the 8086 it runs on is
+	emulated in JavaScript, also written for
+	this site
+<span class="k">Link:</span>	<a href="/os/almo7aya.asm">almo7aya.asm</a> · <a href="/os/almo7aya.img">almo7aya.img</a>
+
+<span class="sep">--------H-7D01---------------------------------</span>
+<span class="hd">INT 7D - ALMO7AYA - <b>KYTYPS5 - EMULATE PS5</b></span>
+	<span class="k">AH</span> = 01h
+<span class="k">Desc:</span>	open-source PS5 emulator in C++. merged:
+	build provenance in the crash log and window
+	title, keyboard input with a controller
+	plugged in, Windows and Linux build fixes
+<span class="k">Link:</span>	<a href="https://github.com/KytyPS5/KytyPS5">github.com/KytyPS5/KytyPS5</a>
+
+<span class="sep">--------H-7D02---------------------------------</span>
+<span class="hd">INT 7D - ALMO7AYA - <b>PS5 SHADER LAB</b></span>
+	<span class="k">AH</span> = 02h
+<span class="k">Desc:</span>	C++20: extracts shaders from game files and
+	runs them through KytyPS5's shader compiler
+	to catch regressions. never runs guest code
+<span class="k">Link:</span>	<a href="https://github.com/Almo7aya/KytyPS5-Shaders-Lab">github.com/Almo7aya/KytyPS5-Shaders-Lab</a>
+
+<span class="sep">--------H-7D03---------------------------------</span>
+<span class="hd">INT 7D - ALMO7AYA - <b>LEARNING KYTYPS5</b></span>
+	<span class="k">AH</span> = 03h
+<span class="k">Desc:</span>	interactive course on how a PS5 emulator
+	works: 20 topics, checked against the source
+<span class="k">Link:</span>	<a href="https://almo7aya.dev/leaning-something/">almo7aya.dev/leaning-something</a>
+
+<span class="sep">--------H-7D04---------------------------------</span>
+<span class="hd">INT 7D - ALMO7AYA - <b>GOWAN - MULTI-WAN SOCKS5</b></span>
+	<span class="k">AH</span> = 04h
+<span class="k">Desc:</span>	Go: balances TCP connections across several
+	internet links on OpenWrt, SO_BINDTODEVICE
+	per WAN, with a LuCI web UI
+<span class="k">Link:</span>	<a href="https://github.com/Almo7aya/luci-app-gowan">github.com/Almo7aya/luci-app-gowan</a>
+
+<span class="sep">--------H-7D05---------------------------------</span>
+<span class="hd">INT 7D - ALMO7AYA - <b>OPENINGH.NVIM / NEOGRUVBOX.NVIM</b></span>
+	<span class="k">AH</span> = 05h
+<span class="k">Desc:</span>	Lua: open the current file on GitHub from
+	Neovim (★ 163), and a modern gruvbox theme
+<span class="k">Link:</span>	<a href="https://github.com/Almo7aya/openingh.nvim">openingh.nvim</a> · <a href="https://github.com/Almo7aya/neogruvbox.nvim">neogruvbox.nvim</a></pre>
+<pre class="doc" id="d-patches" role="tabpanel" hidden><span class="hd">(Table 07h) merged upstream patches</span>
+
+<a href="https://github.com/KytyPS5/KytyPS5/pull/499">KytyPS5/KytyPS5#499</a>          <span class="d">2026-09-07</span>
+	windows build: UTF-16 conversion
+<a href="https://github.com/KytyPS5/KytyPS5/pull/232">KytyPS5/KytyPS5#232</a>          <span class="d">2026-08-11</span>
+	linux build: gs oversubscription clamps
+<a href="https://github.com/KytyPS5/KytyPS5/pull/196">KytyPS5/KytyPS5#196</a>          <span class="d">2026-08-08</span>
+	build provenance in the crash log
+<a href="https://github.com/KytyPS5/KytyPS5/pull/194">KytyPS5/KytyPS5#194</a>          <span class="d">2026-08-08</span>
+	a controller no longer disables the keyboard
+<a href="https://github.com/LunarVim/LunarVim/pull/3180">LunarVim/LunarVim#3180</a>       <span class="d">2022-10-08</span>
+	cmp.setup.cmdline configs
+<a href="https://github.com/pystardust/ani-cli/pull/31">pystardust/ani-cli#31</a>        <span class="d">2021-09-14</span>
+	(r) to replay the current episode
+<a href="https://github.com/ritwickdey/vscode-live-server/pull/330">vscode-live-server#330</a>       <span class="d">2019-04-08</span>
+	random port if the default is taken
+<a href="https://github.com/preactjs/preact/pull/1452">preactjs/preact#1452</a>         <span class="d">2019-03-27</span>
+	skip childDom when _dom is null</pre>
+<pre class="doc" id="d-posts" role="tabpanel" hidden> Volume in drive C is ALMO7AYA
+ Directory of C:\POSTS
+
+{posts.map(p => <Fragment><a href={p.url}>{dosName(p.title, 'MD')}</a>  <span class="d">{p.date}</span>
+	{p.title}
+</Fragment>)}
+ Directory of C:\READING
+
+<a href="/reading/">READING  LST</a>  <span class="d">{readings.length} links</span>
+	things I read and kept
+<a href="/about/">ABOUT    TXT</a>
+	the long version
+<a href="/index.xml">INDEX    XML</a>
+	RSS feed</pre>
+    </div>
+  </section>
+
+  <div class="right">
+    <section class="win watch" id="wWatch" aria-label="Watch">
+      <span class="t">Watch · <b>now playing</b></span>
+      <div class="tv" aria-hidden="true">
+        <div class="pic" id="pic"><img id="girl" src="/girl/still.jpg" width="468" height="468" alt=""></div>
+        <div class="buf">buffering…</div>
+      </div>
+      <div>
+        <p class="x">me.state = <b id="mood">CALM</b></p>
+        <p class="x">player = <b id="pstate">▶ playing</b></p>
+        <p class="x">drm.license = <b>OK</b></p>
+      </div>
+      <div class="pbar" aria-label="Playback"><span id="ptime">0:00</span><span class="track"><i id="pfill"></i></span><span class="q">1080p</span></div>
+    </section>
+
+    <section class="win gh" id="wGit" aria-label="GitHub">
+      <span class="t">GitHub · <b>@Almo7aya</b></span><span class="r" id="ghLive">cached</span>
+      <a class="big" href="https://github.com/Almo7aya">github.com/Almo7aya</a>
+      <p class="stats"><b id="ghRepos">232</b> repos · <b id="ghFol">172</b> followers · since <b id="ghSince">2016</b></p>
+      <ul>
+        <li><a href="https://github.com/Almo7aya/openingh.nvim">openingh.nvim</a><span>★ <b id="ghS1">163</b></span></li>
+        <li><a href="https://github.com/KytyPS5/KytyPS5">KytyPS5</a><span>contributor</span></li>
+        <li><a href="https://github.com/Almo7aya/neogruvbox.nvim">neogruvbox.nvim</a><span>★ <b id="ghS2">30</b></span></li>
+      </ul>
+    </section>
+
+    <section class="win" id="wData" aria-label="Memory">
+      <span class="t">Memory · <b id="memAt">CS:IP</b></span><span class="r">live</span>
+      <div class="scroll data" id="data"></div>
+      <div class="img">
+        <p>7OS is a real disk image ({listing.size} bytes). Boot it anywhere:</p>
+        <p><code>qemu-system-i386 -drive format=raw,file=almo7aya.img</code></p>
+        <p><a class="dl" href="/os/almo7aya.img" download>⬇ almo7aya.img</a> <a class="src" href="/os/almo7aya.asm">view source</a></p>
+      </div>
+    </section>
+  </div>
+</div>
+
+<footer class="status">
+  <button type="button" id="kGo"><b>F5</b> <span id="goLbl">Break</span></button>
+  <button type="button" id="kTrace"><b>F8</b> Trace</button>
+  <button type="button" id="kBpx"><b>F9</b> BPX</button>
+  <button type="button" id="kReset"><b>F2</b> Reboot</button>
+  <span class="sep"></span>
+  <a class="ghs" href="https://github.com/Almo7aya">★ GitHub @Almo7aya</a>
+  <a class="opt" href="/posts/">posts</a>
+  <a class="opt" href="/about/">about</a>
+  <a class="opt" href="/index.xml">rss</a>
+  <span class="st" id="state"></span>
+</footer>
+
+<script type="application/json" id="listing" set:html={JSON.stringify(listing.lines)}></script>
+
+<script>
+import '../lib/cpu8086.js';
+import { initDebugger } from '../lib/debugger.js';
+initDebugger();
+</script>
+
+<style is:global>
+@import '../styles/textmode.css';
+@import '../styles/debugger.css';
+</style>
+</body>
+</html>

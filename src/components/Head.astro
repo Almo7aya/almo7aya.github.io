@@ -1,0 +1,22 @@
+---
+interface Props { title: string; description?: string }
+const { title, description = 'Ali Almohaya (Almo7aya): staff web engineer at Anghami & OSN+. Video player, DRM and TV apps by day; emulators and C++ after hours.' } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+---
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{title}</title>
+  <meta name="description" content={description}>
+  <link rel="canonical" href={canonical}>
+  <link rel="icon" href="/images/favicon.ico">
+  <link rel="alternate" type="application/rss+xml" title="almo7aya.dev" href="/index.xml">
+  <meta property="og:title" content={title}>
+  <meta property="og:description" content={description}>
+  <meta property="og:url" content={canonical}>
+  <meta property="og:image" content={new URL('/girl/still.jpg', Astro.site)}>
+  <meta name="twitter:card" content="summary">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,600;1,400&family=VT323&display=swap" rel="stylesheet">
+</head>

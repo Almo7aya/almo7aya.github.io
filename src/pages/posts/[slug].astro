@@ -1,0 +1,16 @@
+---
+import Page from '../../layouts/Page.astro';
+import { getPosts, fmtDate } from '../../lib/posts';
+
+export function getStaticPaths() {
+  return getPosts().map(post => ({ params: { slug: post.slug }, props: { post } }));
+}
+const { post } = Astro.props;
+const { Content } = post;
+---
+<Page title={`${post.title} · almo7aya.dev`} description={post.description} window={`TYPE ${post.slug.toUpperCase().slice(0, 8)}.MD`} right={fmtDate(post.date)}>
+  <h1>{post.title}</h1>
+  <p class="meta">{fmtDate(post.date)}{post.description && ` · ${post.description}`}</p>
+  <Content />
+  <p class="meta" style="margin-top:30px">— <a href="/posts/">all posts</a> · <a href="/">back to 7OS</a></p>
+</Page>

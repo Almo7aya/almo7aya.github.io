@@ -1,0 +1,112 @@
+[
+  {
+    "title": "The Pain Of Linear Types In Rust - Faultlore",
+    "url": "https://faultlore.com/blah/linear-rust/",
+    "date": "2022-12-07"
+  },
+  {
+    "title": "rust-anthology-master-list.md at master · brson-rust-anthology",
+    "url": "https://github.com/brson/rust-anthology/blob/master/master-list.md",
+    "date": "2022-12-02"
+  },
+  {
+    "title": "Rust 2024...the year of everywhere?",
+    "url": "http://smallcultfollowing.com/babysteps/blog/2022/09/22/rust-2024-the-year-of-everywhere/",
+    "date": "2022-11-27"
+  },
+  {
+    "title": "(2) Why does Rust not have a standard async runtime? : rust",
+    "url": "https://www.reddit.com/r/rust/comments/ui7ayd/comment/i7akj6d/?utm_source=share&utm_medium=web2x&context=3",
+    "date": "2022-11-07"
+  },
+  {
+    "title": "Finding Closure in Rust | Huon on the internet",
+    "url": "https://huonw.github.io/blog/2015/05/finding-closure-in-rust/",
+    "date": "2022-11-07"
+  },
+  {
+    "title": "Why does Rust not have a standard async runtime? : reddit",
+    "url": "https://www.reddit.com/r/rust/comments/ui7ayd/comment/i7akj6d/?utm_source=share&utm_medium=web2x&context=3",
+    "date": "2022-11-07"
+  },
+  {
+    "title": "string - Extract filename and extension in Bash - Stack Overflow",
+    "url": "https://stackoverflow.com/questions/965053/extract-filename-and-extension-in-bash",
+    "date": "2022-11-06"
+  },
+  {
+    "title": "AstroNvim-status.lua at main · AstroNvim-AstroNvim",
+    "url": "https://github.com/AstroNvim/AstroNvim/blob/main/lua/core/utils/status.lua#L459",
+    "date": "2022-11-03"
+  },
+  {
+    "title": "B16f00t-whapa: WhatsApp Parser Toolset v1.59",
+    "url": "https://github.com/B16f00t/whapa",
+    "date": "2022-11-03"
+  },
+  {
+    "title": "nvim: fix treesitter highlighting after breaking change",
+    "url": "https://gist.github.com/jdrouhard/dccbb692e901d5e0a00a3a4c126079c6",
+    "date": "2022-11-02"
+  },
+  {
+    "title": "The HTTP crash course nobody asked for",
+    "url": "https://fasterthanli.me/articles/the-http-crash-course-nobody-asked-for",
+    "date": "2022-11-01"
+  },
+  {
+    "title": "rust-lang-rustlings: Small exercises to get you used to reading and writing Rust code!",
+    "url": "https://github.com/rust-lang/rustlings",
+    "date": "2022-10-24"
+  },
+  {
+    "title": "I succumbed to the Cult of vi - Emmanuel Bernard",
+    "url": "https://emmanuelbernard.com/blog/2012/08/01/i-succumbed-to-the-cult-of-vi/",
+    "date": "2022-10-21"
+  },
+  {
+    "title": "The Cult of vi",
+    "url": "http://www.guckes.net/vi/mirror/vi.html",
+    "date": "2022-10-21"
+  },
+  {
+    "title": "Learn Rust the Dangerous Way - Cliffle",
+    "url": "http://cliffle.com/p/dangerust/",
+    "date": "2022-10-19"
+  },
+  {
+    "title": "rfcs-0141-lifetime-elision.md at master · rust-lang-rfcs",
+    "url": "https://github.com/rust-lang/rfcs/blob/master/text/0141-lifetime-elision.md",
+    "date": "2022-10-18"
+  },
+  {
+    "title": "Getting started - Command Line Applications in Rust",
+    "url": "https://rust-cli.github.io/book/",
+    "date": "2022-10-15"
+  },
+  {
+    "title": "Are we async yet?",
+    "url": "https://areweasyncyet.rs/",
+    "date": "2022-10-14"
+  },
+  {
+    "title": "Are we web yet? Yes, and it's freaking fast!",
+    "url": "https://www.arewewebyet.org/",
+    "date": "2022-10-14"
+  },
+  {
+    "title": "Rust std from 6c4e236b955ba6a2dd8ef8e054f50ff64135a8be · brson-annotated-std-rs@e50c2b1",
+    "url": "https://github.com/brson/annotated-std-rs/commit/e50c2b16455ceff29488bf1f058b6c10906ef990",
+    "date": "2022-10-14"
+  },
+  {
+    "title": "(156) [Demo] vim.schedule demystified (hopefully) - YouTube - TJ DeVries",
+    "url": "https://www.youtube.com/watch?v=GMS0JvS7W1Y",
+    "date": "2022-10-13"
+  },
+  {
+    "title": "How to build a (simple) blog using Rust | by Morten Vistisen",
+    "url": "https://mortenvistisen.com/posts/how-to-build-a-simple-blog-using-rust",
+    "date": "2022-10-13"
+  }
+]

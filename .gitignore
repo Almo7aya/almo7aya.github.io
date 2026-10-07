@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.astro/
+
+# built from os/almo7aya.asm by `npm run os`
+public/os/
+src/data/listing.json
+os/almo7aya.lst

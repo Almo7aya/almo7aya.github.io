@@ -1,0 +1,12 @@
+---
+import Page from '../../layouts/Page.astro';
+import { getPosts, fmtDate } from '../../lib/posts';
+const posts = getPosts();
+---
+<Page title="posts · almo7aya.dev" window="DIR C:\POSTS" right={`${posts.length} file(s)`}>
+  <h1>posts</h1>
+  <p class="meta">things I wrote down so I only learn them once</p>
+  <ul class="list">
+    {posts.map(p => <li><time>{fmtDate(p.date)}</time><a href={`/posts/${p.slug}/`}>{p.title}</a></li>)}
+  </ul>
+</Page>

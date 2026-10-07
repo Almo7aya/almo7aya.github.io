@@ -1,0 +1,11 @@
+---
+import Page from '../layouts/Page.astro';
+import readings from '../data/readings.json';
+---
+<Page title="reading · almo7aya.dev" window="DIR C:\READING" right={`${readings.length} link(s)`}>
+  <h1>reading</h1>
+  <p class="meta">things I read and wanted to keep</p>
+  <ul class="list">
+    {readings.map(r => <li><time>{r.date}</time><a href={r.url} rel="noopener">{r.title}</a></li>)}
+  </ul>
+</Page>

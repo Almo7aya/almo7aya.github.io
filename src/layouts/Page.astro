@@ -1,0 +1,64 @@
+---
+import Head from '../components/Head.astro';
+interface Props { title: string; description?: string; window: string; right?: string }
+const { title, description, window: win, right } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+<Head title={title} description={description} />
+<body>
+  <header class="title">
+    <a class="name" href="/">Almo<span class="s7">7</span>aya</a>
+    <span class="who">Ali Almohaya · staff web engineer @ Anghami &amp; OSN+</span>
+    <span class="mode"><a href="/" style="color:inherit">← back to 7OS</a></span>
+    <a class="ghb" href="https://github.com/Almo7aya">github.com/Almo7aya ↗</a>
+  </header>
+  <main class="page">
+    <section class="win focus">
+      <span class="t">{win}</span>{right && <span class="r">{right}</span>}
+      <div class="body"><slot /></div>
+    </section>
+  </main>
+  <footer class="status">
+    <a href="/"><b>ESC</b> 7OS</a>
+    <a href="/posts/"><b>F3</b> posts</a>
+    <a href="/reading/"><b>F4</b> reading</a>
+    <a href="/about/"><b>F6</b> about</a>
+    <span class="sep"></span>
+    <a class="ghs" href="https://github.com/Almo7aya">★ GitHub @Almo7aya</a>
+    <a href="/index.xml">rss</a>
+  </footer>
+  <script>
+    const go: Record<string, string> = { Escape: '/', F3: '/posts/', F4: '/reading/', F6: '/about/' };
+    addEventListener('keydown', e => { if (go[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); location.href = go[e.key]; } });
+  </script>
+  <style is:global>
+    @import '../styles/textmode.css';
+    body { min-height: 100vh; display: flex; flex-direction: column; }
+    .title { position: sticky; top: 0; z-index: 5; }
+    .status { position: sticky; bottom: 0; z-index: 5; }
+    .page { flex: 1; width: 100%; max-width: 900px; margin: 0 auto; padding: 30px 16px 40px; }
+    .page .body { padding: 10px 8px 6px; font-size: 15px; line-height: 1.7; color: var(--gray); }
+    .body h1 { font: 400 clamp(34px, 5vw, 52px)/1 var(--dos); color: var(--white); margin: 6px 0 6px; }
+    .body h1 .s7, .body .s7 { color: var(--yellow); }
+    .body .meta { color: var(--dgray); font-size: 13px; margin-bottom: 22px; }
+    .body h2 { font: 400 28px/1.1 var(--dos); color: var(--yellow); margin: 28px 0 8px; }
+    .body h2::before { content: "## "; color: var(--dgray); }
+    .body h3 { color: var(--white); font-size: 15px; margin: 20px 0 6px; }
+    .body p, .body ul, .body ol { margin: 0 0 14px; }
+    .body ul, .body ol { padding-left: 2.2ch; }
+    .body li::marker { color: var(--cyan2); }
+    .body strong { color: var(--white); }
+    .body a { color: var(--green); }
+    .body a:hover { background: var(--green); color: var(--bg); }
+    .body code { color: var(--yellow); }
+    .body pre { background: #0a0a0a; border-left: 2px solid var(--cyan2); padding: 10px 12px; overflow-x: auto; margin: 0 0 14px; }
+    .body img { max-width: 100%; height: auto; border: 2px solid var(--dgray); }
+    .body blockquote { border-left: 2px solid var(--magenta); padding-left: 12px; color: var(--gray); }
+    .list { list-style: none; padding: 0 !important; }
+    .list li { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 14px; padding: 6px 0; border-bottom: 1px dashed #222; }
+    .list time { color: var(--dgray); font-size: 13px; }
+    @media (max-width: 600px) { .list li { grid-template-columns: 1fr; gap: 0; } }
+  </style>
+</body>
+</html>
