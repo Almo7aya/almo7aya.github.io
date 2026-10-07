@@ -28,13 +28,36 @@ body { overflow: hidden; display: flex; flex-direction: column; }
 #wScreen.typing { border-color: var(--yellow); }
 #wScreen.typing > .r { color: var(--yellow); }
 
-/* code: the NASM listing */
+/* the disk button and the F12 boot menu */
+.diskbtn { margin-left: 10px; padding: 0 6px; color: var(--gray); border: 1px solid var(--dgray); font: inherit; }
+.diskbtn b { font-weight: 400; color: var(--yellow); }
+.diskbtn:hover { color: var(--white); border-color: var(--gray); }
+.crt { position: relative; }
+.bootmenu { position: absolute; inset: 8% 10%; z-index: 2; display: flex; flex-direction: column; gap: 8px; padding: 12px 14px;
+  background: var(--blue); color: var(--white); border: 2px double var(--white); font-size: 13px; overflow: auto; cursor: default; }
+.bootmenu[hidden] { display: none; }
+.bootmenu .bm-t { color: var(--yellow); text-align: center; }
+.bootmenu .bm-k { color: var(--cyan); text-align: center; margin-top: auto; }
+.bootmenu ol { list-style: none; margin: 0; padding: 0; }
+.bootmenu li { padding: 2px 6px; line-height: 1.35; cursor: pointer; }
+.bootmenu li b { font-weight: 400; }
+.bootmenu li span { color: var(--cyan); }
+.bootmenu li i { font-style: normal; color: var(--gray); font-size: 12px; }
+.bootmenu li.sel, .bootmenu li:hover { background: var(--gray); color: var(--bg); }
+.bootmenu li.sel span, .bootmenu li.sel i, .bootmenu li:hover span, .bootmenu li:hover i { color: var(--bg); }
+
+/* code: a disassembly of what is really at CS:IP, labels from the listing */
 .code { font-size: 12.5px; position: relative; }
-.code .row { display: grid; grid-template-columns: 16px 40px 78px minmax(0, 1fr); gap: 0 8px; white-space: pre; line-height: 1.5; }
-.code .row.ins { cursor: pointer; }
-.code .row.ins:hover:not(.cur) { background: #111; }
+.code .row { display: grid; grid-template-columns: 14px 76px 92px minmax(0, 1fr); gap: 0 8px; white-space: pre; line-height: 1.5; cursor: pointer; }
+.code .row:hover:not(.cur) { background: #111; }
+.code .lbl { color: var(--magenta); padding-left: 22px; line-height: 1.5; margin-top: 4px; }
+.code .mn { color: var(--yellow); }
+.code .row.cur .mn { color: var(--white); }
+.code .row.ran .addr { color: var(--green); }
+.code .row.ran .gut::before { content: "·"; color: var(--green); }
+.code .row.bad .src { color: var(--brown); }
 .code .gut { color: var(--red); text-align: center; }
-.code .ins .gut:hover::before { content: "·"; }
+.code .row:hover .gut:empty::before { content: "·"; }
 .code .addr { color: var(--cyan2); }
 .code .bytes { color: var(--green); overflow: hidden; text-overflow: ellipsis; }
 .code .src { color: var(--white); overflow: hidden; text-overflow: ellipsis; }
@@ -70,6 +93,27 @@ body { overflow: hidden; display: flex; flex-direction: column; }
 .data .z { color: var(--dgray); }
 .data .n { color: var(--green); }
 .data .ip { background: var(--blue); color: var(--white); }
+.data .sp { outline: 1px solid var(--magenta); outline-offset: -1px; color: var(--white); }
+.data .w1 { background: var(--yellow); color: var(--bg); }
+.data .w2 { color: var(--yellow); }
+.memctl { display: flex; flex-wrap: wrap; gap: 4px; margin: -2px 0 8px; font-size: 12px; }
+.memctl input { width: 10ch; padding: 0 4px; background: #000; color: var(--white); border: 1px solid var(--dgray); font: inherit; text-transform: uppercase; }
+.memctl input:focus { outline: none; border-color: var(--yellow); }
+.memctl input.err { border-color: var(--red); color: var(--red); }
+.presets { display: contents; }
+.presets button { padding: 0 5px; color: var(--gray); border: 1px solid var(--dgray); font: inherit; }
+.presets button:hover { color: var(--white); border-color: var(--gray); }
+
+/* messages / stack tabs */
+.minitabs { display: inline-flex; gap: 2px; }
+.minitabs button { padding: 0 6px; color: var(--gray); font: inherit; }
+.minitabs button[aria-selected="true"] { color: var(--bg); background: var(--cyan2); }
+.stack { font-size: 12.5px; white-space: pre; }
+.stack[hidden], .log[hidden] { display: none; }
+.stack .a { color: var(--cyan2); }
+.stack b { font-weight: 400; color: var(--green); }
+.stack .top b { color: var(--white); background: var(--blue); }
+.stack .c { color: var(--dgray); }
 .img { border-top: 1px dashed var(--dgray); margin-top: 8px; padding-top: 8px; font-size: 12px; }
 .img p + p { margin-top: 4px; }
 .img code { color: var(--green); word-break: break-all; }

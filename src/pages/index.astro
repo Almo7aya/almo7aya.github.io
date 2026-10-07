@@ -1,5 +1,4 @@
 ---
-import listing from '../data/listing.json';
 import readings from '../data/readings.json';
 import Head from '../components/Head.astro';
 
@@ -16,7 +15,7 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
 <header class="title">
   <span class="name">Almo<span class="s7">7</span>aya</span>
   <span class="who">Ali Almohaya · staff web engineer @ Anghami &amp; OSN+</span>
-  <span class="mode">8086 · real mode · 7OS</span>
+  <span class="mode" id="diskTitle">8086 · real mode</span>
   <a class="ghb" href="https://github.com/Almo7aya">github.com/Almo7aya ↗</a>
 </header>
 
@@ -27,19 +26,25 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
   </section>
 
   <section class="win focus" id="wScreen" aria-label="Screen">
-    <span class="t">Screen · <b id="vmode">VGA 720×400 · text 80×25 · B800:0000</b></span><span class="r" id="kbdHint">click here and type</span>
-    <div class="crt" id="crt" tabindex="0" role="application" aria-label="7OS screen. click it and type commands such as help, dir or demo">
+    <span class="t">Screen · <b id="vmode">VGA 720×400 · text 80×25 · B800:0000</b></span><span class="r"><span id="kbdHint">click here and type</span> · <button type="button" class="diskbtn" id="diskBtn" title="boot menu (F12)">disk: <b id="diskName">…</b> ▾</button></span>
+    <div class="crt" id="crt" tabindex="0" role="application" aria-label="the emulated PC's screen. click it to type and use the mouse">
       <canvas id="vga" width="720" height="400"></canvas>
+      <div class="bootmenu" id="bootMenu" hidden role="dialog" aria-label="boot menu">
+        <p class="bm-t">Please select boot device:</p>
+        <ol id="bootList"></ol>
+        <p class="bm-k">↑↓ select · Enter boot · Esc cancel</p>
+      </div>
     </div>
   </section>
 
   <section class="win" id="wMsgs" aria-label="Messages">
-    <span class="t">Messages</span>
+    <span class="t">Messages</span><span class="r"><span class="minitabs"><button type="button" data-pane="log" aria-selected="true">messages</button><button type="button" data-pane="stack" aria-selected="false">stack</button></span></span>
     <div class="scroll log" id="log" aria-live="polite"></div>
+    <div class="scroll stack" id="stack" hidden></div>
   </section>
 
   <section class="win" id="wCode" aria-label="Code">
-    <span class="t">Code · <b>almo7aya.asm</b></span><span class="r" id="where">0000:7C00</span>
+    <span class="t">Code · <b id="codeSrc">disassembly</b></span><span class="r" id="where">0000:7C00</span>
     <div class="scroll code" id="code"></div>
   </section>
 
@@ -182,12 +187,18 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
     </section>
 
     <section class="win" id="wData" aria-label="Memory">
-      <span class="t">Memory · <b id="memAt">CS:IP</b></span><span class="r">live</span>
+      <span class="t">Memory · <b id="memAt">CS:IP</b></span><span class="r" id="memInfo">writes flash</span>
+      <form class="memctl" id="memForm" autocomplete="off">
+        <input id="memAddr" value="CS:IP" spellcheck="false" aria-label="address: seg:off, a linear address, or CS:IP / SS:SP">
+        <span class="presets">
+          <button type="button" data-at="CS:IP">CS:IP</button><button type="button" data-at="SS:SP">SS:SP</button><button type="button" data-at="0000:0000">IVT</button><button type="button" data-at="0040:0000">BDA</button><button type="button" data-at="B800:0000">B800</button><button type="button" data-at="A000:0000">A000</button><button type="button" data-at="0000:7C00">7C00</button><button type="button" data-at="F000:FFF0">ROM</button>
+        </span>
+      </form>
       <div class="scroll data" id="data"></div>
       <div class="img">
-        <p>7OS is a real disk image ({listing.size} bytes). Boot it anywhere:</p>
-        <p><code>qemu-system-i386 -drive format=raw,file=almo7aya.img</code></p>
-        <p><a class="dl" href="/os/almo7aya.img" download>⬇ almo7aya.img</a> <a class="src" href="/os/almo7aya.asm">view source</a></p>
+        <p>a real disk image (<span id="imgSize">…</span> bytes). boot it anywhere:</p>
+        <p><code id="qemuCmd">qemu-system-i386 -drive format=raw,file=almo7aya.img</code></p>
+        <p><a class="dl" id="imgLink" href="/os/almo7aya.img" download>⬇ almo7aya.img</a> <a class="src" id="srcLink" href="/os/7os.asm">view source</a></p>
       </div>
     </section>
   </div>
@@ -199,6 +210,8 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
   <button type="button" id="kBpx"><b>F9</b> BPX</button>
   <button type="button" id="kReset"><b>F2</b> Reboot</button>
   <button type="button" id="kTurbo" class="turbo on" aria-pressed="true" title="the turbo button: off runs at 4.77 MHz 8086 speed"><b>F7</b> <i></i>TURBO</button>
+  <button type="button" id="kSound" aria-pressed="true" title="PC speaker"><b>F6</b> <span id="soundLbl">SPK on</span></button>
+  <button type="button" id="kBoot"><b>F12</b> Boot</button>
   <span class="sep"></span>
   <a class="ghs" href="https://github.com/Almo7aya">★ GitHub @Almo7aya</a>
   <a class="opt" href="/posts/">posts</a>
@@ -206,8 +219,6 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
   <a class="opt" href="/index.xml">rss</a>
   <span class="st" id="state"></span>
 </footer>
-
-<script type="application/json" id="listing" set:html={JSON.stringify(listing.lines)}></script>
 
 <script>
 import '../lib/cpu8086.js';
