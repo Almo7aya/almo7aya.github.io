@@ -4,6 +4,15 @@
 # boots an image in QEMU headless, types commands via the monitor, saves PNG screenshots
 param([string]$Img, [string]$Out, [string[]]$Steps, [int]$Port = 45454)
 Add-Type -AssemblyName System.Drawing
+# QEMU's working directory is not ours: make the paths absolute
+$Img = (Resolve-Path $Img).Path
+New-Item -ItemType Directory -Force $Out | Out-Null; $Out = (Resolve-Path $Out).Path
+# `powershell -File` hands the list over as one string ('a','b' or a,b): split it back into steps
+if ($Steps.Count -eq 1) {
+  $one = $Steps[0]
+  $Steps = if ($one -match "'") { [regex]::Matches($one, "'([^']*)'") | % { $_.Groups[1].Value } }
+           else { $one -split ',(?=(?:wait|shot|key|mouse|mon):)' }
+}
 $q = if ($env:QEMU) { $env:QEMU } else { 'D:\Trinity\x86_64-softmmu\qemu-system-x86_64.exe' }
 $port = $Port
 $p = Start-Process $q -ArgumentList @('-drive', "format=raw,file=$Img", '-m', '2048', '-display', 'none', '-monitor', "tcp:127.0.0.1:$port,server,nowait") -PassThru -WindowStyle Hidden

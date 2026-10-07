@@ -5,9 +5,8 @@
 //   mode 13h:  320x200, one byte per pixel at A000:0000, colours from the DAC palette
 // Frame() is plain JavaScript (Node uses it for screenshots); VGA paints a Frame onto a <canvas>.
 
-const TEXT_PALETTE = ['#000000', '#0000aa', '#00aa00', '#00aaaa', '#aa0000', '#aa00aa', '#aa5500', '#aaaaaa',
-  '#555555', '#5555ff', '#55ff55', '#55ffff', '#ff5555', '#ff55ff', '#ffff55', '#ffffff']
-  .map(h => (0xFF000000 | (parseInt(h.slice(5, 7), 16) << 16) | (parseInt(h.slice(3, 5), 16) << 8) | parseInt(h.slice(1, 3), 16)) >>> 0);
+// the attribute controller's default palette registers: text colour -> DAC entry
+const ATTR_PALETTE = [0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x14, 0x07, 0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x3E, 0x3F];
 
 export class Frame {
   constructor() { this.mode = -1; this.sig = ''; this.frames = 0; this.dacSeen = -1; this.pal256 = new Uint32Array(256); this.w = 0; this.h = 0; this.px = null; }
@@ -23,14 +22,17 @@ export class Frame {
     }
     return mode === 0x13 ? this.graphics(m) : this.text(m);
   }
-  graphics(m) {
-    if (this.dacSeen !== m.dacVersion) {
-      this.dacSeen = m.dacVersion;
-      for (let i = 0; i < 256; i++) {
-        const r = m.dac[i * 3] * 255 / 63 | 0, g = m.dac[i * 3 + 1] * 255 / 63 | 0, b = m.dac[i * 3 + 2] * 255 / 63 | 0;
-        this.pal256[i] = (0xFF000000 | (b << 16) | (g << 8) | r) >>> 0;
-      }
+  palette(m) {
+    if (this.dacSeen === m.dacVersion) return false;
+    this.dacSeen = m.dacVersion;
+    for (let i = 0; i < 256; i++) {
+      const r = m.dac[i * 3] * 255 / 63 | 0, g = m.dac[i * 3 + 1] * 255 / 63 | 0, b = m.dac[i * 3 + 2] * 255 / 63 | 0;
+      this.pal256[i] = (0xFF000000 | (b << 16) | (g << 8) | r) >>> 0;
     }
+    return true;
+  }
+  graphics(m) {
+    this.palette(m);
     const v = m.mem, px = this.px, pal = this.pal256;
     for (let i = 0; i < 64000; i++) px[i] = pal[v[0xA0000 + i]];
     return true;
@@ -42,10 +44,11 @@ export class Frame {
     const cx = mem[0x450], cy = mem[0x451];
     let h = 2166136261;                              // only repaint when something visible changed
     for (let i = 0xB8000; i < 0xB8000 + 4000; i++) h = Math.imul(h ^ mem[i], 16777619);
-    const sig = `${h}|${cx},${cy},${curStart},${curEnd},${curOff}|${blinkOn}`;
+    this.palette(m);
+    const sig = `${h}|${cx},${cy},${curStart},${curEnd},${curOff}|${blinkOn}|${m.dacVersion}`;
     if (sig === this.sig) return false;
     this.sig = sig;
-    const px = this.px, W = 720;
+    const px = this.px, W = 720, TEXT_PALETTE = ATTR_PALETTE.map(i => this.pal256[i]);
     for (let row = 0; row < 25; row++) {
       for (let col = 0; col < 80; col++) {
         const cell = 0xB8000 + (row * 80 + col) * 2, ch = mem[cell], at = mem[cell + 1];

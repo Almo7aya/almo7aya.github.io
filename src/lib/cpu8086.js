@@ -55,6 +55,16 @@
   ];
 
   // the VGA's default 256-colour DAC palette (6 bits per channel)
+  // what the VGA BIOS loads for text modes: the 64 EGA colours (bits rgbRGB), repeated 4 times.
+  // the attribute controller then maps text colours 0-15 to DAC entries 0-5, 14h, 7, 38h-3Fh
+  function textPalette() {
+    const p = new Uint8Array(768);
+    for (let i = 0; i < 256; i++) {
+      const c = i & 63;
+      p.set([(c & 4 ? 42 : 0) + (c & 32 ? 21 : 0), (c & 2 ? 42 : 0) + (c & 16 ? 21 : 0), (c & 1 ? 42 : 0) + (c & 8 ? 21 : 0)], i * 3);
+    }
+    return p;
+  }
   function defaultPalette() {
     const p = new Uint8Array(768);
     const ega = [0, 0, 0, 0, 0, 42, 0, 42, 0, 0, 42, 42, 42, 0, 0, 42, 0, 42, 42, 21, 0, 42, 42, 42,
@@ -91,7 +101,7 @@
       drive: opts.drive === 'floppy' ? 0x00 : 0x80,
       geometry: opts.drive === 'floppy' ? { heads: 2, spt: 18, cyls: 80 } : { heads: 16, spt: 63 },
       irqPending: 0, irqs: 0, lastTick: null, kbdIrqs: 0,
-      dac: defaultPalette(), dacVersion: 0, font: opts.font || new Uint8Array(4096),
+      dac: textPalette(), dacVersion: 0, font: opts.font || new Uint8Array(4096),
       // the debugger's view: when each byte was last written (in m.wtick units) and the last 64 CS:IPs
       wstamp: new Uint32Array(0x100000), wtick: 1, trail: new Uint32Array(64), trailPos: 0,
       mouse: { x: 320, y: 100, buttons: 0, shown: 0, minX: 0, maxX: 639, minY: 0, maxY: 199, installed: false },
@@ -388,7 +398,7 @@
           case 0x00: {
             const mode = al & 0x7F;
             if (mode === 0x13) { if (!(al & 0x80)) mem.fill(0, 0xA0000, 0xA0000 + 64000); m.dac.set(defaultPalette()); m.dacVersion++; }
-            else if (!(al & 0x80)) clearScreen();
+            else { if (!(al & 0x80)) clearScreen(); m.dac.set(textPalette()); m.dacVersion++; }
             mem[0x449] = mode === 0x13 ? 0x13 : 0x03;
             note(n, `AH=00h set video mode ${mode.toString(16).padStart(2, '0')}h${mode === 0x13 ? ' (320x200x256, A000:0000)' : ' (80x25 text, B800:0000)'}`);
             return;
@@ -564,7 +574,7 @@
       const d = new Date(m.now());
       const t = Math.floor((d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) * 18.2065);
       ww(0x46C, t & 0xFFFF); ww(0x46E, t >>> 16);                // ticks since midnight
-      m.dac.set(defaultPalette()); m.dacVersion++;
+      m.dac.set(textPalette()); m.dacVersion++;                  // the machine boots in text mode 3
       // the diskette parameter table at the IBM address, also pointed to by INT 1Eh
       mem.set([0xDF, 0x02, 0x25, 0x02, 0x12, 0x1B, 0xFF, 0x6C, 0xF6, 0x0F, 0x08], lin(BIOS_SEG, 0xEFC7));
       ww(0x1E * 4, 0xEFC7); ww(0x1E * 4 + 2, BIOS_SEG);
