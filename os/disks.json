@@ -1,0 +1,82 @@
+[
+  {
+    "id": "7os",
+    "title": "7OS 0.8",
+    "image": "almo7aya.img",
+    "drive": "hdd",
+    "description": "a small real-mode OS: 7FS filesystem, INT 1Ch clock, shell, mode 13h demo",
+    "keys": "type help, dir, demo",
+    "size": 54272,
+    "external": false
+  },
+  {
+    "id": "player",
+    "title": "7PLAYER",
+    "image": "player.img",
+    "drive": "floppy",
+    "description": "the day job, in 8086: a streaming video player with RC4 DRM (key ladder, license, per-frame keys), ABR and buffering",
+    "keys": "space pause, left/right seek, D drm debug, N network glitch, M sound",
+    "size": 1474560,
+    "external": false
+  },
+  {
+    "id": "intro",
+    "title": "7INTRO",
+    "image": "intro.img",
+    "drive": "hdd",
+    "description": "a 90s demoscene intro: starfield, fire, copper bars, tunnel, sine scroller and PC speaker music",
+    "keys": "just watch · Esc restarts",
+    "size": 172544,
+    "external": false
+  },
+  {
+    "id": "maze",
+    "title": "7MAZE",
+    "image": "maze.img",
+    "drive": "hdd",
+    "description": "a Wolfenstein-style raycaster through a gallery of Ali's work: fixed-point DDA, textured walls, distance shading, posters with info cards",
+    "keys": "arrows/WASD walk and turn, Q/E strafe, M minimap, F fps",
+    "size": 144896,
+    "external": false
+  },
+  {
+    "id": "gui",
+    "title": "7GUI",
+    "image": "gui.img",
+    "drive": "hdd",
+    "description": "a tiny windowed desktop in mode 13h: PS/2 mouse, draggable windows, z-order, taskbar clock, pixel-art icons",
+    "keys": "double-click icons, drag title bars, Esc closes, Tab cycles, Enter opens",
+    "size": 30208,
+    "external": false
+  },
+  {
+    "id": "snake",
+    "title": "SNAKE · 512 bytes",
+    "image": "snake.img",
+    "drive": "hdd",
+    "description": "classic snake in a single 512-byte boot sector: the screen is the board, the body is a ring buffer",
+    "keys": "arrows steer, any key restarts",
+    "size": 512,
+    "external": false
+  },
+  {
+    "id": "invaders",
+    "title": "INVADERS · 512 bytes",
+    "image": "invaders.img",
+    "drive": "hdd",
+    "description": "space invaders in a single 512-byte boot sector: the invaders exist only in video memory and march by block moves",
+    "keys": "left/right move, space fires, any key restarts",
+    "size": 512,
+    "external": false
+  },
+  {
+    "id": "panic",
+    "title": "PANIC · 512 bytes",
+    "image": "panic.img",
+    "drive": "hdd",
+    "description": "an original 512-byte boot sector game: the mascot dodges falling bugs and SEGFAULTs that rain faster and thicker; one hit and she panics",
+    "keys": "hold left/right to run, space restarts",
+    "size": 512,
+    "external": false
+  }
+]
