@@ -1,5 +1,5 @@
 // debugger.js · runs 7OS on cpu8086.js and keeps the debugger windows in sync
-const CGA = ['#000', '#00a', '#0a0', '#0aa', '#a00', '#a0a', '#a50', '#aaa', '#555', '#55f', '#5f5', '#5ff', '#f55', '#f5f', '#ff5', '#fff'];
+import { VGA } from './vga.js';
 const VIDEO_SECS = 427;
 
 export function initDebugger() {
@@ -53,48 +53,23 @@ export function initDebugger() {
   });
 
   /* ---------- screen ---------- */
-  const vga = $('#vga'), crt = $('#crt');
-  const css = document.createElement('style');
-  css.textContent = Array.from({ length: 128 }, (_, a) => `.a${a}{color:${CGA[a & 15]};background:${CGA[(a >> 4) & 7]}}`).join('');
-  document.head.appendChild(css);
-  let cellW = .5;
-  const measure = () => {
-    const p = document.createElement('span'); p.textContent = 'M'.repeat(80);
-    p.style.cssText = `position:absolute;visibility:hidden;white-space:pre;font-size:100px;font-family:${getComputedStyle(vga).fontFamily}`;
-    document.body.appendChild(p); cellW = p.getBoundingClientRect().width / 8000; p.remove();
+  // the screen is a <canvas>: vga.js scans video memory and draws pixels, the way the card would
+  const canvas = $('#vga'), crt = $('#crt'), vga = new VGA(canvas);
+  const fit = () => {                    // a 4:3 monitor in whatever space the window has
+    const w = crt.clientWidth - 4, h = crt.clientHeight - 4;
+    const cw = Math.min(w, h * 4 / 3);
+    canvas.style.width = cw + 'px'; canvas.style.height = cw * 3 / 4 + 'px';
   };
-  const fit = () => {
-    // VGA cells are 9×16; with a narrow fallback font, never let rows overlap
-    const line = Math.max(1, cellW * 16 / 9);
-    const fs = Math.max(5, Math.min((crt.clientWidth - 4) / (80 * cellW), (crt.clientHeight - 4) / (25 * line)));
-    vga.style.fontSize = fs + 'px'; vga.style.lineHeight = (fs * line) + 'px';
-  };
-  measure(); new ResizeObserver(fit).observe(crt); document.fonts?.ready.then(() => { measure(); fit(); });
+  new ResizeObserver(fit).observe(crt);
 
-  let m = null, lastVram = new Uint8Array(4000), lastCur = -1;
+  let m = null, shownMode = -1;
   function renderScreen(force) {
-    const v = m.mem.subarray(0xB8000, 0xB8000 + 4000);
-    const hidden = m.mem[0x461] & 0x20, cur = hidden ? -1 : m.mem[0x451] * 80 + m.mem[0x450];
-    let same = !force && cur === lastCur;
-    if (same) for (let i = 0; i < 4000; i++) if (v[i] !== lastVram[i]) { same = false; break; }
-    if (same) return;
-    lastVram.set(v); lastCur = cur;
-    let html = '';
-    for (let y = 0; y < 25; y++) {
-      let run = '', attr = -1;
-      for (let x = 0; x < 80; x++) {
-        const i = y * 80 + x, ch = X86.CP437[v[i * 2]], a = v[i * 2 + 1] & 0x7F;
-        if (i === cur) {
-          if (run) html += `<span class="a${attr}">${esc(run)}</span>`;
-          html += `<span class="a${a} cur">${esc(ch)}</span>`; run = ''; attr = -1; continue;
-        }
-        if (a !== attr) { if (run) html += `<span class="a${attr}">${esc(run)}</span>`; run = ''; attr = a; }
-        run += ch;
-      }
-      if (run) html += `<span class="a${attr}">${esc(run)}</span>`;
-      if (y < 24) html += '\n';
+    if (force) vga.sig = '';
+    vga.draw(m);
+    if (m.mode !== shownMode) {
+      shownMode = m.mode;
+      $('#vmode').textContent = m.mode === 0x13 ? 'VGA 320×200 · mode 13h · 256 colours · A000:0000' : 'VGA 720×400 · text 80×25 · B800:0000';
     }
-    vga.innerHTML = html;
   }
 
   /* ---------- registers, memory, code cursor ---------- */
@@ -136,9 +111,12 @@ export function initDebugger() {
     }
     $('#where').textContent = `${hex(m.s[1], 4)}:${hex(m.ip, 4)}`;
   }
+  let mips = 0, mipsAt = performance.now(), mipsCount = 0;
   function renderState() {
+    const now = performance.now();
+    if (now - mipsAt > 1000) { mips = (m.instructions - mipsCount) / (now - mipsAt) / 1000; mipsAt = now; mipsCount = m.instructions; }
     const st = m.fault ? `<b class="x">${m.fault.name}</b>` : m.halted ? '<b>halted</b>' : m.waiting === 'key' ? '<b>waiting for a key</b>' : running ? '<b>running</b>' : '<b>break</b>';
-    $('#state').innerHTML = `${st} at ${hex(m.s[1], 4)}:${hex(m.ip, 4)} · ${m.instructions.toLocaleString('en-US')} instructions`;
+    $('#state').innerHTML = `${st} at ${hex(m.s[1], 4)}:${hex(m.ip, 4)} · ${m.instructions.toLocaleString('en-US')} instr · ${mips.toFixed(1)} MIPS · IRQ0 ×${m.irqs}`;
     $('#goLbl').textContent = running ? 'Break' : 'Go';
   }
   function renderAll(force) { renderScreen(force); renderRegs(); renderMem(); renderCode(); renderState(); renderPlayback(); }
@@ -160,7 +138,13 @@ export function initDebugger() {
   }
 
   /* ---------- run loop ---------- */
-  let running = true, wasWaiting = null;
+  let running = true, wasWaiting = null, turbo = true;
+  const setTurbo = on => {
+    turbo = on;
+    $('#kTurbo').classList.toggle('on', on);
+    $('#kTurbo').setAttribute('aria-pressed', on);
+    log(on ? 'TURBO on: full speed' : 'TURBO off: ~4.77 MHz 8086 speed, 0.33 MIPS', 'y');
+  };
   function onFault() {
     running = false; setMood(true);
     log(`${m.fault.name} at ${hex(m.fault.cs, 4)}:${hex(m.fault.ip, 4)} · me.state: CALM → PANIC · player: buffering`, 'r');
@@ -171,9 +155,16 @@ export function initDebugger() {
       const dt = (now - lastTick) / 1000; lastTick = now;
       if (running && !m.fault) {
         played += dt;
-        for (let i = 0; i < 60000; i++) {
-          if (!m.step()) break;
-          if (bps.has(m.pc())) { running = false; log(`Break due to BPX 0000:${hex(m.ip, 4)}`, 'y'); break; }
+        m.tickTimer();                                 // the PIT: queue IRQ0s for the time that passed
+        const until = performance.now() + 10;          // ~10 ms of CPU per frame
+        // turbo off: about what a 4.77 MHz 8086 managed, ~0.33 million instructions a second
+        let budget = turbo ? Infinity : Math.max(1, Math.round(330000 * Math.min(dt, 0.1)));
+        run: while (performance.now() < until && budget > 0) {
+          for (let i = 0; i < 4000 && budget-- > 0; i++) {
+            if (!m.step()) break run;                  // parked in INT 16h / INT 15h / HLT, or faulted
+            if (bps.size && bps.has(m.pc())) { running = false; log(`Break due to BPX 0000:${hex(m.ip, 4)}`, 'y'); break run; }
+          }
+          m.tickTimer();
         }
         if (m.fault) onFault();
         if (m.waiting !== wasWaiting) {
@@ -215,7 +206,9 @@ export function initDebugger() {
     else if (e.key === 'F8' || e.key === 'F10') { e.preventDefault(); trace(); }
     else if (e.key === 'F9') { e.preventDefault(); bpxHere(); }
     else if (e.key === 'F2') { e.preventDefault(); reboot(); }
+    else if (e.key === 'F7') { e.preventDefault(); setTurbo(!turbo); }
   });
+  $('#kTurbo').onclick = () => setTurbo(!turbo);
   $('#kGo').onclick = go; $('#kTrace').onclick = trace; $('#kBpx').onclick = bpxHere; $('#kReset').onclick = reboot;
 
   /* ---------- docs tabs ---------- */
@@ -231,14 +224,16 @@ export function initDebugger() {
     mm.print('Memory Test : ', 0x07); mm.print('640K OK\r\n', 0x0A);
     mm.print('Boot device : hard disk 80h, almo7aya.img\r\n\r\n', 0x07);
   };
-  fetch('/os/almo7aya.img').then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); }).then(buf => {
+  // the disk image and the 8x16 font ROM (unscii-16, mapped to CP437 by os/build.mjs)
+  const load = url => fetch(url).then(r => { if (!r.ok) throw new Error(`${url} ${r.status}`); return r.arrayBuffer(); });
+  Promise.all([load('/os/almo7aya.img'), load('/os/vgafont.bin')]).then(([buf, fontBuf]) => {
     const img = new Uint8Array(buf);
-    m = X86.createMachine(img, { post });
+    m = X86.createMachine(img, { post, font: new Uint8Array(fontBuf) });
     m.hooks.int = (n, msg) => log(`INT ${hex(n)}h ${msg}`, 'c');
     m.hooks.reboot = () => log(`reset · INT 19h: sector 0 of almo7aya.img → 0000:7C00, signature ${hex(m.rw(0x7DFE), 4)}h`, 'g');
     running = false;
     m.reset();
-    log(`almo7aya.img: ${img.length} bytes, ${img.length / 512} sectors`, 'w');
+    log(`almo7aya.img: ${img.length} bytes, ${img.length / 512} sectors · font ROM 4096 bytes at C000:1000`, 'w');
     renderAll(true);
     setTimeout(() => { running = true; lastTick = performance.now(); crt.focus({ preventScroll: true }); }, reduce ? 0 : 700);
   }).catch(err => log(`could not load almo7aya.img (${err.message}). run npm run os.`, 'r'));

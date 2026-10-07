@@ -1,0 +1,13 @@
+INT 7Dh - after hours
+
+  7OS              this. a two-stage real-mode OS, NASM, 8086
+  KytyPS5          an open-source PS5 emulator in C++. I contribute fixes:
+                   crash-log build info, controller and keyboard input,
+                   Windows and Linux builds
+  PS5 Shader Lab   C++20: runs extracted shaders through KytyPS5's shader
+                   compiler to catch regressions
+  Learning KytyPS5 an interactive course on how a PS5 emulator works
+                   almo7aya.dev/leaning-something
+  GoWAN            Go: one SOCKS5 endpoint over several WAN links, OpenWrt
+  openingh.nvim    Lua: open the current file on GitHub from Neovim
+  neogruvbox.nvim  Lua: a modern gruvbox theme for Neovim

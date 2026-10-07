@@ -1,0 +1,6 @@
+github.com/Almo7aya
+
+  repos     openingh.nvim, neogruvbox.nvim, luci-app-gowan,
+            KytyPS5-Shaders-Lab, leaning-something, almo7aya.github.io
+  upstream  KytyPS5, Preact, LunarVim, ani-cli, Live Server
+            (see PATCHES.TXT)

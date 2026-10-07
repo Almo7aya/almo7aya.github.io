@@ -5,12 +5,17 @@
  *   IMUL imm and LEAVE from the 186), segment:offset addressing, ModR/M, prefixes,
  *   REP string ops, real interrupt vectoring through the IVT at 0000:0000.
  *   0F 0B (UD2) and unknown opcodes raise #UD and stop the machine for the debugger.
- * - BIOS: high-level emulated (HLE) INT 10h video (text mode, memory at B800:0000),
- *   INT 11h/12h, INT 13h disk (CHS + LBA extensions, read-only), INT 15h/86h wait,
- *   INT 16h keyboard, INT 19h bootstrap, INT 1Ah clock. A vector the program
- *   replaces in the IVT is honoured: the CPU jumps there like real hardware would.
+ * - Hardware: the PIT fires IRQ0 at 18.2 Hz into INT 08h, whose BIOS handler is real
+ *   machine code in ROM (it counts ticks at 0040:006C and calls INT 1Ch, which programs
+ *   hook). VGA: text mode at B800:0000, mode 13h at A000:0000, the DAC palette on ports
+ *   3C7h-3C9h, vertical retrace on 3DAh, an 8x16 font ROM at C000:1000.
+ * - BIOS: high-level emulated (HLE) INT 10h video, INT 11h/12h, INT 13h disk
+ *   (CHS + LBA extensions, read-only), INT 15h/86h wait, INT 16h keyboard,
+ *   INT 19h bootstrap, INT 1Ah clock. A vector the program replaces in the IVT is
+ *   honoured: the CPU jumps there like real hardware would. The reset vector at
+ *   FFFF:0000 is a real far jump.
  *
- * Works in the browser (window.X86) and in Node (require).
+ * Works in the browser (window.X86) and in Node.
  */
 (function (root) {
   'use strict';
@@ -20,7 +25,56 @@
   // register indices
   const AX = 0, CX = 1, DX = 2, BX = 3, SP = 4, BP = 5, SI = 6, DI = 7;
   const ES = 0, CS = 1, SS = 2, DS = 3;
-  const BIOS_SEG = 0xF000, STUB_BASE = 0xE000;  // IVT[n] defaults to F000:E000+n, an IRET
+  const BIOS_SEG = 0xF000;
+  // the IBM PC BIOS entry points every compatible BIOS (SeaBIOS too) still uses.
+  // each holds an IRET; when a program INTs to one, the BIOS service runs in JavaScript (HLE)
+  const ENTRY = { 0x05: 0xFF54, 0x09: 0xE987, 0x11: 0xF84D, 0x12: 0xF841, 0x13: 0xE3FE, 0x14: 0xE739,
+    0x15: 0xF859, 0x16: 0xE82E, 0x17: 0xEFD2, 0x19: 0xE6F2, 0x1A: 0xFE6E, 0x1C: 0xFF53 };
+  const DUMMY_IRET = 0xFF53;                    // unclaimed vectors point at the dummy IRET, like IBM's
+  const VIDEO_SEG = 0xC000, INT10_OFF = 0x0130; // INT 10h lives in the video BIOS
+  const INT08_OFF = 0xFEA5, POST_OFF = 0xE05B;  // the timer handler (real code), the POST entry point
+  const vectorFor = n => n === 0x10 ? [VIDEO_SEG, INT10_OFF] : n === 0x08 ? [BIOS_SEG, INT08_OFF] : [BIOS_SEG, ENTRY[n] ?? DUMMY_IRET];
+  const FONT_SEG = 0xC000, FONT_OFF = 0x1000;   // 8x16 font ROM, as INT 10h/1130h reports it
+  const TICK_MS = 1000 / 18.2065;               // PIT channel 0 at its BIOS default
+  // INT 08h, the way a real BIOS does it: count the tick, call INT 1Ch, EOI the PIC
+  const INT08_CODE = [
+    0x1E,                   // push ds
+    0x50,                   // push ax
+    0x31, 0xC0,             // xor ax, ax
+    0x8E, 0xD8,             // mov ds, ax
+    0xFF, 0x06, 0x6C, 0x04, // inc word [046Ch]
+    0x75, 0x04,             // jnz +4
+    0xFF, 0x06, 0x6E, 0x04, // inc word [046Eh]
+    0xCD, 0x1C,             // int 1Ch
+    0xB0, 0x20,             // mov al, 20h
+    0xE6, 0x20,             // out 20h, al
+    0x58,                   // pop ax
+    0x1F,                   // pop ds
+    0xCF,                   // iret
+  ];
+
+  // the VGA's default 256-colour DAC palette (6 bits per channel)
+  function defaultPalette() {
+    const p = new Uint8Array(768);
+    const ega = [0, 0, 0, 0, 0, 42, 0, 42, 0, 0, 42, 42, 42, 0, 0, 42, 0, 42, 42, 21, 0, 42, 42, 42,
+      21, 21, 21, 21, 21, 63, 21, 63, 21, 21, 63, 63, 63, 21, 21, 63, 21, 63, 63, 63, 21, 63, 63, 63];
+    p.set(ega);
+    const grey = [0, 5, 8, 11, 14, 17, 20, 24, 28, 32, 36, 40, 45, 50, 56, 63];
+    grey.forEach((g, i) => p.set([g, g, g], (16 + i) * 3));
+    let i = 32;
+    for (const [hi, lo] of [[63, 0], [63, 31], [63, 45], [28, 0], [28, 14], [28, 20], [16, 0], [16, 8], [16, 11]]) {
+      const ramp = [lo, lo + (hi - lo) / 4, lo + (hi - lo) / 2, lo + 3 * (hi - lo) / 4, hi].map(Math.round);
+      const seq = [];       // walk the colour wheel: blue -> magenta -> red -> yellow -> green -> cyan -> blue
+      for (let k = 0; k < 4; k++) seq.push([ramp[k], lo, hi]);
+      for (let k = 4; k > 0; k--) seq.push([hi, lo, ramp[k]]);
+      for (let k = 0; k < 4; k++) seq.push([hi, ramp[k], lo]);
+      for (let k = 4; k > 0; k--) seq.push([ramp[k], hi, lo]);
+      for (let k = 0; k < 4; k++) seq.push([lo, hi, ramp[k]]);
+      for (let k = 4; k > 0; k--) seq.push([lo, ramp[k], hi]);
+      for (const c of seq) { if (i < 248) p.set(c, i * 3); i++; }
+    }
+    return p;
+  }
 
   const PARITY = new Uint8Array(256);
   for (let i = 0; i < 256; i++) { let b = i, p = 1; while (b) { p ^= b & 1; b >>= 1; } PARITY[i] = p; }
@@ -34,12 +88,15 @@
       halted: false, fault: null, waiting: null, wakeAt: 0, instructions: 0,
       keys: [], hooks: { int: null, reboot: null }, now: opts.now || (() => Date.now()),
       geometry: { heads: 16, spt: 63 },
+      irqPending: 0, irqs: 0, lastTick: null,
+      dac: defaultPalette(), dacVersion: 0, font: opts.font || new Uint8Array(4096),
     };
+    let dacW = 0, dacC = 0, dacR = 0, dacRC = 0, retraceToggle = 0, lastScan = 0;
 
     // ---------- memory ----------
     const lin = (seg, off) => ((seg << 4) + (off & 0xFFFF)) & 0xFFFFF;
     const rb = a => mem[a & 0xFFFFF];
-    const wb = (a, v) => { a &= 0xFFFFF; if (a >= 0xF0000) return; mem[a] = v & 0xFF; };  // BIOS ROM is read-only
+    const wb = (a, v) => { a &= 0xFFFFF; if (a >= 0xC0000) return; mem[a] = v & 0xFF; };  // video BIOS + BIOS ROM are read-only
     const rw = a => rb(a) | (rb(a + 1) << 8);
     const ww = (a, v) => { wb(a, v); wb(a + 1, v >> 8); };
     m.rb = rb; m.rw = rw; m.lin = lin;
@@ -148,7 +205,11 @@
     }
 
     // ---------- interrupts ----------
-    function vectorIsBios(n) { return rw(n * 4 + 2) === BIOS_SEG && rw(n * 4) === STUB_BASE + n; }
+    function vectorIsBios(n) {
+      if (n === 0x08) return false;               // the timer handler is real code: execute it
+      const [seg, off] = vectorFor(n);
+      return rw(n * 4 + 2) === seg && rw(n * 4) === off;
+    }
     function interrupt(n, retIp) {
       if (vectorIsBios(n)) {
         const res = bios(n);
@@ -164,6 +225,33 @@
       m.fault = { name, cs: s[CS], ip: opStart };
       m.ip = opStart;
     }
+
+    // ---------- I/O ports ----------
+    function portIn(p) {
+      switch (p) {
+        case 0x3DA: {               // VGA input status 1: bit 3 = vertical retrace (70 Hz), bit 0 toggles
+          const t = m.now() % (1000 / 70);
+          retraceToggle ^= 1;
+          return (t > (1000 / 70) * 0.9 ? 0x08 : 0) | retraceToggle;
+        }
+        case 0x3C9: { const v = m.dac[dacR * 3 + dacRC]; if (++dacRC === 3) { dacRC = 0; dacR = (dacR + 1) & 0xFF; } return v; }
+        case 0x60: return lastScan;                 // keyboard data
+        case 0x64: return 0x14;                     // keyboard status: nothing pending
+        case 0x61: return 0x20;
+        case 0x21: return 0x00;                     // PIC mask: everything enabled
+        default: return 0xFF;
+      }
+    }
+    function portOut(p, v) {
+      v &= 0xFF;
+      switch (p) {
+        case 0x3C8: dacW = v; dacC = 0; return;     // DAC write index
+        case 0x3C7: dacR = v; dacRC = 0; return;    // DAC read index
+        case 0x3C9: m.dac[dacW * 3 + dacC] = v & 0x3F; if (++dacC === 3) { dacC = 0; dacW = (dacW + 1) & 0xFF; } m.dacVersion++; return;
+        default: return;                            // PIC EOI (20h), PIT (40h-43h), speaker: accepted, ignored
+      }
+    }
+    m.portIn = portIn; m.portOut = portOut;
 
     // ---------- the BIOS (HLE) ----------
     const COLS = 80, ROWS = 25, VRAM = 0xB8000;
@@ -216,7 +304,26 @@
       const ah = r[AX] >> 8, al = r[AX] & 0xFF;
       switch (n) {
         case 0x10: switch (ah) {
-          case 0x00: clearScreen(); mem[0x449] = al & 0x7F; note(n, `AH=00h set video mode ${al.toString(16).padStart(2, '0')}h`); return;
+          case 0x00: {
+            const mode = al & 0x7F;
+            if (mode === 0x13) { if (!(al & 0x80)) mem.fill(0, 0xA0000, 0xA0000 + 64000); m.dac.set(defaultPalette()); m.dacVersion++; }
+            else if (!(al & 0x80)) clearScreen();
+            mem[0x449] = mode === 0x13 ? 0x13 : 0x03;
+            note(n, `AH=00h set video mode ${mode.toString(16).padStart(2, '0')}h${mode === 0x13 ? ' (320x200x256, A000:0000)' : ' (80x25 text, B800:0000)'}`);
+            return;
+          }
+          case 0x0C: if (mem[0x449] === 0x13 && r[CX] < 320 && r[DX] < 200) mem[0xA0000 + r[DX] * 320 + r[CX]] = al; return;
+          case 0x0D: if (mem[0x449] === 0x13) w8(0, mem[0xA0000 + (r[DX] % 200) * 320 + (r[CX] % 320)]); return;
+          case 0x10:                                // DAC registers
+            if (al === 0x10) { m.dac.set([r[DX] >> 8 & 63, r[CX] >> 8 & 63, r[CX] & 63], (r[BX] & 0xFF) * 3); m.dacVersion++; }
+            else if (al === 0x12) { for (let i = 0; i < r[CX]; i++) for (let c = 0; c < 3; c++) m.dac[((r[BX] + i) & 0xFF) * 3 + c] = rb(lin(s[ES], r[DX] + i * 3 + c)) & 63; m.dacVersion++; }
+            else if (al === 0x15) { const b = (r[BX] & 0xFF) * 3; r[DX] = (r[DX] & 0xFF) | (m.dac[b] << 8); r[CX] = (m.dac[b + 1] << 8) | m.dac[b + 2]; }
+            return;
+          case 0x11:                                // character generator
+            if (al === 0x30) { s[ES] = FONT_SEG; r[BP] = FONT_OFF; r[CX] = 16; r[DX] = (r[DX] & 0xFF00) | 24; note(n, 'AX=1130h font ROM → C000:1000 (8x16)'); }
+            return;
+          case 0x12: if ((r[BX] & 0xFF) === 0x10) r[BX] = 0x0003; return;   // EGA/VGA info: colour, 256K
+          case 0x1A: if (al === 0x00) { r[AX] = (r[AX] & 0xFF00) | 0x1A; r[BX] = 0x0008; } return;  // display: VGA colour
           case 0x01: mem[0x460] = r[CX] & 0xFF; mem[0x461] = r[CX] >> 8; return;
           case 0x02: setCur(r[DX] >> 8, r[DX] & 0xFF); return;
           case 0x03: { const { row, col } = curPos(); r[DX] = (row << 8) | col; r[CX] = (mem[0x461] << 8) | mem[0x460]; return; }
@@ -293,6 +400,7 @@
           if (ah === 0x02) { r[AX] &= 0xFF00; return; }
           return;
         case 0x19: note(n, 'bootstrap: reboot'); m.reset(); return;
+        case 0x1C: return;                          // user timer tick: nothing by default
         case 0x1A: {
           const d = new Date(m.now());
           if (ah === 0x00) {
@@ -312,12 +420,25 @@
     // ---------- reset / boot ----------
     m.reset = function () {
       mem.fill(0);
-      for (let n = 0; n < 256; n++) { ww(n * 4, STUB_BASE + n); ww(n * 4 + 2, BIOS_SEG); mem[lin(BIOS_SEG, STUB_BASE + n)] = 0xCF; }  // IRET stubs
+      for (let n = 0; n < 256; n++) { const [seg, off] = vectorFor(n); ww(n * 4, off); ww(n * 4 + 2, seg); mem[lin(seg, off)] = 0xCF; }  // IVT -> IRETs at the entry points
       mem[0x410] = 0x21; mem[0x413] = 0x80; mem[0x414] = 0x02;   // equipment, 640K
       mem[0x449] = 0x03; mem[0x44A] = 80;                        // video mode 3, 80 columns
       mem[0x460] = 0x0E; mem[0x461] = 0x0D;                      // underline cursor
+      // ROM: the timer handler, the font, the reset vector, the BIOS date and model byte
+      mem.set(INT08_CODE, lin(BIOS_SEG, INT08_OFF));
+      ww(8 * 4, INT08_OFF); ww(8 * 4 + 2, BIOS_SEG);
+      mem.set(m.font, lin(FONT_SEG, FONT_OFF));
+      mem.set([0xCD, 0x19], lin(BIOS_SEG, POST_OFF));            // POST entry: INT 19h, boot again
+      mem.set([0xEA, POST_OFF & 0xFF, POST_OFF >> 8, 0x00, 0xF0], 0xFFFF0);  // FFFF:0000 jmp F000:E05B
+      [...'10/07/26'].forEach((c, i) => { mem[0xFFFF5 + i] = c.charCodeAt(0); });
+      mem[0xFFFFE] = 0xFC;                                       // model byte: AT
+      const d = new Date(m.now());
+      const t = Math.floor((d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) * 18.2065);
+      ww(0x46C, t & 0xFFFF); ww(0x46E, t >>> 16);                // ticks since midnight
+      m.dac.set(defaultPalette()); m.dacVersion++;
       r.fill(0); s.fill(0); m.flags = 0x0002 | IF;
       m.halted = false; m.fault = null; m.waiting = null; m.keys.length = 0; m.instructions = 0;
+      m.irqPending = 0; m.irqs = 0; m.lastTick = m.now();
       clearScreen();
       if (opts.post) opts.post(m);
       // INT 19h: load sector 0 of the boot disk at 0000:7C00 and check the signature
@@ -328,8 +449,29 @@
     };
 
     // ---------- one instruction ----------
+    // the PIT: call with the current time, queues IRQ0 for every 54.9 ms that passed
+    m.tickTimer = function (now = m.now()) {
+      if (m.lastTick === null) m.lastTick = now;
+      const due = Math.floor((now - m.lastTick) / TICK_MS);
+      if (due > 0) { m.lastTick += due * TICK_MS; m.irqPending = Math.min(m.irqPending + due, 4); }
+      if (now - m.lastTick > TICK_MS * 8) m.lastTick = now;    // tab was asleep: don't flood
+    };
+    function deliverIrq0() {               // hardware interrupt: push FLAGS, CS, IP and vector through 08h
+      m.irqPending--; m.irqs++;
+      m.halted = false;
+      if (m.waiting === 'key') m.waiting = null;   // IP still points at the INT 16h, it runs again after IRET
+      push(m.flags); push(s[CS]); push(m.ip);
+      setF(IF, 0); setF(TF, 0);
+      m.ip = rw(8 * 4); s[CS] = rw(8 * 4 + 2);
+      m.instructions++;
+      return true;
+    }
+
     m.step = function () {
-      if (m.halted || m.fault) return false;
+      if (m.fault) return false;
+      const irq = m.irqPending > 0 && (m.flags & IF) && m.waiting !== 'time';
+      if (m.halted) return irq ? deliverIrq0() : false;          // HLT sleeps until an interrupt
+      if (irq) return deliverIrq0();
       if (m.waiting === 'time') { if (m.now() < m.wakeAt) return false; m.waiting = null; }
       if (m.waiting === 'key') { if (!m.keys.length) return false; m.waiting = null; }
       opStart = m.ip; opSeg = s[CS];
@@ -345,7 +487,8 @@
       return true;
     };
     m.pc = () => lin(s[CS], m.ip);
-    m.key = (ascii, scan = 0) => { m.keys.push(((scan & 0xFF) << 8) | (ascii & 0xFF)); if (m.keys.length > 16) m.keys.shift(); };
+    m.key = (ascii, scan = 0) => { lastScan = scan & 0xFF; m.keys.push(((scan & 0xFF) << 8) | (ascii & 0xFF)); if (m.keys.length > 16) m.keys.shift(); };
+    Object.defineProperty(m, 'mode', { get: () => mem[0x449] });
 
     function stringOp(op) {
       const w = op & 1, size = w ? 2 : 1, delta = getF(DF) ? -size : size;
@@ -408,11 +551,19 @@
       if (op >= 0x50 && op <= 0x57) { const v = op === 0x54 ? r[SP] - 2 : r[op - 0x50]; push(v); return; }  // 8086 pushes SP-2
       if (op >= 0x58 && op <= 0x5F) { r[op - 0x58] = pop(); return; }
       if (op >= 0x70 && op <= 0x7F) {
-        const d = sx8(fetch8());
-        const c = [getF(OF), !getF(OF), getF(CF), !getF(CF), getF(ZF), !getF(ZF), getF(CF) || getF(ZF), !getF(CF) && !getF(ZF),
-          getF(SF), !getF(SF), getF(PF), !getF(PF), getF(SF) !== getF(OF), getF(SF) === getF(OF),
-          getF(ZF) || getF(SF) !== getF(OF), !getF(ZF) && getF(SF) === getF(OF)][op - 0x70];
-        if (c) m.ip = (m.ip + d) & 0xFFFF;
+        const d = sx8(fetch8()), f = m.flags;
+        let c;
+        switch (op >> 1 & 7) {
+          case 0: c = f & OF; break;                                   // JO
+          case 1: c = f & CF; break;                                   // JB
+          case 2: c = f & ZF; break;                                   // JZ
+          case 3: c = f & (CF | ZF); break;                            // JBE
+          case 4: c = f & SF; break;                                   // JS
+          case 5: c = f & PF; break;                                   // JP
+          case 6: c = !(f & SF) !== !(f & OF); break;                  // JL
+          default: c = (f & ZF) || (!(f & SF) !== !(f & OF));          // JLE
+        }
+        if (!c === !!(op & 1)) m.ip = (m.ip + d) & 0xFFFF;             // odd opcodes are the negations
         return;
       }
       if (op >= 0x91 && op <= 0x97) { const t = r[AX]; r[AX] = r[op - 0x90]; r[op - 0x90] = t; return; }
@@ -487,16 +638,18 @@
           if (go) m.ip = (m.ip + d) & 0xFFFF; return;
         }
         case 0xE3: { const d = sx8(fetch8()); if (r[CX] === 0) m.ip = (m.ip + d) & 0xFFFF; return; }
-        case 0xE4: fetch8(); w8(0, 0xFF); return;
-        case 0xE5: fetch8(); r[AX] = 0xFFFF; return;
-        case 0xE6: case 0xE7: fetch8(); return;
+        case 0xE4: w8(0, portIn(fetch8())); return;
+        case 0xE5: { const p = fetch8(); r[AX] = portIn(p) | (portIn(p + 1) << 8); return; }
+        case 0xE6: portOut(fetch8(), r[AX]); return;
+        case 0xE7: { const p = fetch8(); portOut(p, r[AX]); portOut(p + 1, r[AX] >> 8); return; }
         case 0xE8: { const d = fetch16(); push(m.ip); m.ip = (m.ip + d) & 0xFFFF; return; }
         case 0xE9: { const d = fetch16(); m.ip = (m.ip + d) & 0xFFFF; return; }
         case 0xEA: { const off = fetch16(), seg = fetch16(); m.ip = off; s[CS] = seg; return; }
         case 0xEB: { const d = sx8(fetch8()); m.ip = (m.ip + d) & 0xFFFF; return; }
-        case 0xEC: w8(0, 0xFF); return;
-        case 0xED: r[AX] = 0xFFFF; return;
-        case 0xEE: case 0xEF: return;
+        case 0xEC: w8(0, portIn(r[DX])); return;
+        case 0xED: r[AX] = portIn(r[DX]) | (portIn(r[DX] + 1) << 8); return;
+        case 0xEE: portOut(r[DX], r[AX]); return;
+        case 0xEF: portOut(r[DX], r[AX]); portOut(r[DX] + 1, r[AX] >> 8); return;
         case 0xF4: m.halted = true; return;
         case 0xF5: setF(CF, !getF(CF)); return;
         case 0xF6: case 0xF7: {

@@ -22,9 +22,9 @@ body { overflow: hidden; display: flex; flex-direction: column; }
 /* the VGA screen, drawn from B800:0000 */
 .crt { flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden; cursor: text; outline: none; }
 .crt:focus-visible { outline: 1px dashed var(--yellow); outline-offset: 2px; }
-.crt pre { font-family: var(--dos); white-space: pre; letter-spacing: 0; }
-.crt .cur { animation: cblink .53s steps(1) infinite; text-decoration: underline; text-decoration-thickness: .14em; text-underline-offset: .1em; }
-@keyframes cblink { 50% { text-decoration-color: transparent; } }
+.crt canvas { display: block; image-rendering: pixelated; background: #000; }
+.status .turbo i { display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #533; vertical-align: 1px; }
+.status .turbo.on i { background: #f33; box-shadow: 0 0 5px #f33; }
 #wScreen.typing { border-color: var(--yellow); }
 #wScreen.typing > .r { color: var(--yellow); }
 

@@ -1,0 +1,6 @@
+INT 7Ch - work (Anghami & OSN+)
+
+  AH=00h  WEB & TV APPS     streaming apps for the web and for TVs
+  AH=01h  VIDEO PLAYBACK    the video player: start fast, stay smooth
+                            returns CF set if it's buffering
+  AH=02h  DRM               encrypted video that plays wherever people watch

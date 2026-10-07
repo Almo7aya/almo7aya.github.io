@@ -6,3 +6,5 @@ dist/
 public/os/
 src/data/listing.json
 os/almo7aya.lst
+os/kernel.bin
+os/sine.inc

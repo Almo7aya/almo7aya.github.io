@@ -1,0 +1,10 @@
+(Table 07h) merged upstream patches
+
+  KytyPS5/KytyPS5 #499           windows build: UTF-16 conversion
+  KytyPS5/KytyPS5 #232           linux build: gs oversubscription clamps
+  KytyPS5/KytyPS5 #196           build provenance in the crash log
+  KytyPS5/KytyPS5 #194           a controller no longer disables the keyboard
+  LunarVim/LunarVim #3180        cmp.setup.cmdline configs
+  pystardust/ani-cli #31         (r) to replay the current episode
+  vscode-live-server #330        random port if the default is taken
+  preactjs/preact #1452          skip childDom when _dom is null

@@ -27,8 +27,10 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
   </section>
 
   <section class="win focus" id="wScreen" aria-label="Screen">
-    <span class="t">Screen · <b>VGA 80×25 · B800:0000</b></span><span class="r" id="kbdHint">click here and type</span>
-    <div class="crt" id="crt" tabindex="0" role="application" aria-label="7OS text screen, click and type commands"><pre id="vga" aria-live="polite"></pre></div>
+    <span class="t">Screen · <b id="vmode">VGA 720×400 · text 80×25 · B800:0000</b></span><span class="r" id="kbdHint">click here and type</span>
+    <div class="crt" id="crt" tabindex="0" role="application" aria-label="7OS screen. click it and type commands such as help, dir or demo">
+      <canvas id="vga" width="720" height="400"></canvas>
+    </div>
   </section>
 
   <section class="win" id="wMsgs" aria-label="Messages">
@@ -196,6 +198,7 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
   <button type="button" id="kTrace"><b>F8</b> Trace</button>
   <button type="button" id="kBpx"><b>F9</b> BPX</button>
   <button type="button" id="kReset"><b>F2</b> Reboot</button>
+  <button type="button" id="kTurbo" class="turbo on" aria-pressed="true" title="the turbo button: off runs at 4.77 MHz 8086 speed"><b>F7</b> <i></i>TURBO</button>
   <span class="sep"></span>
   <a class="ghs" href="https://github.com/Almo7aya">★ GitHub @Almo7aya</a>
   <a class="opt" href="/posts/">posts</a>
