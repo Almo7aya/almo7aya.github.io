@@ -33,6 +33,7 @@
   const DUMMY_IRET = 0xFF53;                    // unclaimed vectors point at the dummy IRET, like IBM's
   const VIDEO_SEG = 0xC000, INT10_OFF = 0x0130; // INT 10h lives in the video BIOS
   const INT08_OFF = 0xFEA5, POST_OFF = 0xE05B;  // the timer handler (real code), the POST entry point
+  const MOUSE_TRAMP = 0xFED0;                   // after a PS/2 mouse callback: add sp,8 / iret
   const vectorFor = n => n === 0x10 ? [VIDEO_SEG, INT10_OFF] : n === 0x08 ? [BIOS_SEG, INT08_OFF] : [BIOS_SEG, ENTRY[n] ?? DUMMY_IRET];
   const FONT_SEG = 0xC000, FONT_OFF = 0x1000;   // 8x16 font ROM, as INT 10h/1130h reports it
   const TICK_MS = 1000 / 18.2065;               // PIT channel 0 at its BIOS default
@@ -87,16 +88,28 @@
       mem, r, s, ip: 0, flags: 0x0002, image: image || new Uint8Array(512),
       halted: false, fault: null, waiting: null, wakeAt: 0, instructions: 0,
       keys: [], hooks: { int: null, reboot: null }, now: opts.now || (() => Date.now()),
-      geometry: { heads: 16, spt: 63 },
-      irqPending: 0, irqs: 0, lastTick: null,
+      drive: opts.drive === 'floppy' ? 0x00 : 0x80,
+      geometry: opts.drive === 'floppy' ? { heads: 2, spt: 18, cyls: 80 } : { heads: 16, spt: 63 },
+      irqPending: 0, irqs: 0, lastTick: null, kbdIrqs: 0,
       dac: defaultPalette(), dacVersion: 0, font: opts.font || new Uint8Array(4096),
+      // the debugger's view: when each byte was last written (in m.wtick units) and the last 64 CS:IPs
+      wstamp: new Uint32Array(0x100000), wtick: 1, trail: new Uint32Array(64), trailPos: 0,
+      mouse: { x: 320, y: 100, buttons: 0, shown: 0, minX: 0, maxX: 639, minY: 0, maxY: 199, installed: false },
+      ps2: { enabled: false, cbSeg: 0, cbOff: 0, dx: 0, dy: 0, dirty: false, last: 0 },
+      speakerHz: 0,
     };
     let dacW = 0, dacC = 0, dacR = 0, dacRC = 0, retraceToggle = 0, lastScan = 0;
+    // 8253 PIT: channel reload values, access state, latches; 8259 PIC mask; port 61h; CMOS index
+    const pit = [0, 1, 2].map(() => ({ reload: 0x10000, rw: 3, flip: 0, latched: null, lo: 0, start: 0 }));
+    let picMask = 0, port61 = 0, cmosIndex = 0;
+    const kbdQueue = [];                        // scancodes waiting for IRQ1 (when a program hooks INT 09h)
+    let irq1Pending = 0;
 
     // ---------- memory ----------
     const lin = (seg, off) => ((seg << 4) + (off & 0xFFFF)) & 0xFFFFF;
     const rb = a => mem[a & 0xFFFFF];
-    const wb = (a, v) => { a &= 0xFFFFF; if (a >= 0xC0000) return; mem[a] = v & 0xFF; };  // video BIOS + BIOS ROM are read-only
+    const wstamp = m.wstamp;
+    const wb = (a, v) => { a &= 0xFFFFF; if (a >= 0xC0000) return; mem[a] = v & 0xFF; wstamp[a] = m.wtick; };  // video BIOS + BIOS ROM are read-only
     const rw = a => rb(a) | (rb(a + 1) << 8);
     const ww = (a, v) => { wb(a, v); wb(a + 1, v >> 8); };
     m.rb = rb; m.rw = rw; m.lin = lin;
@@ -235,10 +248,13 @@
           return (t > (1000 / 70) * 0.9 ? 0x08 : 0) | retraceToggle;
         }
         case 0x3C9: { const v = m.dac[dacR * 3 + dacRC]; if (++dacRC === 3) { dacRC = 0; dacR = (dacR + 1) & 0xFF; } return v; }
-        case 0x60: return lastScan;                 // keyboard data
-        case 0x64: return 0x14;                     // keyboard status: nothing pending
-        case 0x61: return 0x20;
-        case 0x21: return 0x00;                     // PIC mask: everything enabled
+        case 0x40: case 0x41: case 0x42: return pitRead(p - 0x40);
+        case 0x60: kbdFull = 0; return lastScan;    // keyboard data
+        case 0x64: return 0x14 | kbdFull;           // keyboard status: system flag, key lock, output buffer full
+        case 0x61: refresh ^= 0x10; return (port61 & 0x0F) | refresh | 0x20;
+        case 0x20: return 0;                        // PIC IRR/ISR: nothing in service
+        case 0x21: return picMask;
+        case 0x71: return cmosRead(cmosIndex);
         default: return 0xFF;
       }
     }
@@ -248,7 +264,65 @@
         case 0x3C8: dacW = v; dacC = 0; return;     // DAC write index
         case 0x3C7: dacR = v; dacRC = 0; return;    // DAC read index
         case 0x3C9: m.dac[dacW * 3 + dacC] = v & 0x3F; if (++dacC === 3) { dacC = 0; dacW = (dacW + 1) & 0xFF; } m.dacVersion++; return;
-        default: return;                            // PIC EOI (20h), PIT (40h-43h), speaker: accepted, ignored
+        case 0x43: {                                // PIT mode/command
+          const ch = v >> 6, rwm = (v >> 4) & 3;
+          if (ch === 3) return;                     // read-back: not on an 8253
+          if (rwm === 0) { pit[ch].latched = pitCount(ch); pit[ch].flip = 0; return; }
+          pit[ch].rw = rwm; pit[ch].flip = 0; return;
+        }
+        case 0x40: case 0x41: case 0x42: pitWrite(p - 0x40, v); return;
+        case 0x61: port61 = v; speaker(); return;   // bit 0 gates PIT channel 2, bit 1 enables the speaker
+        case 0x20:                                  // PIC: ICW1 starts initialisation, anything else is OCW2/3 (EOI)
+          if (v & 0x10) { icw = 2; icw4 = v & 1; single = v & 2; picMask = 0; }
+          return;
+        case 0x21:
+          if (icw === 2) { m.irqBase = v & 0xF8; icw = single ? (icw4 ? 4 : 0) : 3; return; }
+          if (icw === 3) { icw = icw4 ? 4 : 0; return; }
+          if (icw === 4) { icw = 0; return; }
+          picMask = v; return;
+        case 0x70: cmosIndex = v & 0x7F; return;
+        default: return;                            // keyboard commands, DMA, POST codes: accepted, ignored
+      }
+    }
+    let kbdFull = 0, refresh = 0, icw = 0, icw4 = 0, single = 0;
+    m.irqBase = 0x08;
+
+    // 8253 PIT at 1.193182 MHz
+    const PIT_HZ = 1193182;
+    const pitCount = ch => { const t = pit[ch]; const el = Math.floor((m.now() - t.start) * PIT_HZ / 1000); return (t.reload - (el % t.reload)) & 0xFFFF; };
+    function pitRead(ch) {
+      const t = pit[ch], v = t.latched ?? pitCount(ch);
+      if (t.rw === 1) { t.latched = null; return v & 0xFF; }
+      if (t.rw === 2) { t.latched = null; return v >> 8; }
+      t.flip ^= 1;
+      if (!t.flip) t.latched = null;
+      return t.flip ? v & 0xFF : v >> 8;
+    }
+    function pitWrite(ch, v) {
+      const t = pit[ch];
+      if (t.rw === 1) t.lo = v, t.reload = v || 0x100;
+      else if (t.rw === 2) t.reload = (v << 8) || 0x10000;
+      else if (!t.flip) { t.lo = v; t.flip = 1; return; }
+      else { t.flip = 0; t.reload = (t.lo | (v << 8)) || 0x10000; }
+      t.start = m.now();
+      if (ch === 0) { m.tickMs = t.reload * 1000 / PIT_HZ; m.hooks.pit && m.hooks.pit(PIT_HZ / t.reload); }
+      if (ch === 2) speaker();
+    }
+    function speaker() {                         // channel 2 square wave out to the speaker
+      const hz = (port61 & 3) === 3 ? PIT_HZ / pit[2].reload : 0;
+      if (hz !== m.speakerHz) { m.speakerHz = hz; m.hooks.speaker && m.hooks.speaker(hz); }
+    }
+    function cmosRead(i) {                       // MC146818 RTC, BCD, 24-hour
+      const d = new Date(m.now());
+      switch (i) {
+        case 0x00: return bcd(d.getSeconds()); case 0x02: return bcd(d.getMinutes()); case 0x04: return bcd(d.getHours());
+        case 0x06: return d.getDay() + 1; case 0x07: return bcd(d.getDate()); case 0x08: return bcd(d.getMonth() + 1);
+        case 0x09: return bcd(d.getFullYear() % 100); case 0x32: return bcd(Math.floor(d.getFullYear() / 100));
+        case 0x0A: return 0x26; case 0x0B: return 0x02; case 0x0D: return 0x80;
+        case 0x10: return 0x40;                    // floppy types: drive 0 = 1.44 MB
+        case 0x14: return 0x21;                    // equipment: one floppy, colour 80 columns
+        case 0x15: return 0x80; case 0x16: return 0x02;   // base memory 640K
+        default: return 0;
       }
     }
     m.portIn = portIn; m.portOut = portOut;
@@ -296,6 +370,13 @@
         const src = lba * 512 + i;
         wb(lin(seg, off + i), src < m.image.length ? m.image[src] : 0);
       }
+    }
+    function diskWrite(lba, count, seg, off) {     // writes land in this session's copy of the image
+      for (let i = 0; i < count * 512; i++) {
+        const dst = lba * 512 + i;
+        if (dst < m.image.length) m.image[dst] = rb(lin(seg, off + i));
+      }
+      m.diskWrites = (m.diskWrites || 0) + count;
     }
     const bcd = v => ((v / 10) | 0) << 4 | (v % 10);
     const note = (n, msg, extra) => m.hooks.int && m.hooks.int(n, msg, extra);
@@ -359,37 +440,65 @@
         case 0x11: r[AX] = 0x0021; return;
         case 0x12: r[AX] = 640; return;
         case 0x13: {
-          const drive = r[DX] & 0xFF;
-          setF(CF, 0);
-          if (ah === 0x00) { r[AX] &= 0x00FF; return; }
-          if (ah === 0x02) {
+          const drive = r[DX] & 0xFF, g = m.geometry, floppy = m.drive < 0x80;
+          const fail = code => { r[AX] = (code << 8) | (r[AX] & 0xFF); setF(CF, 1); mem[floppy ? 0x441 : 0x474] = code; };
+          const ok = () => { r[AX] &= 0x00FF; setF(CF, 0); mem[floppy ? 0x441 : 0x474] = 0; };
+          if (drive !== m.drive) { fail(0x01); return; }                   // only the boot disk is attached
+          const total = Math.floor(m.image.length / 512);
+          const chs = () => {
             const cyl = (r[CX] >> 8) | ((r[CX] & 0xC0) << 2), sec = r[CX] & 0x3F, head = r[DX] >> 8;
-            if (sec === 0) { r[AX] = 0x0100; setF(CF, 1); return; }
-            const lba = (cyl * m.geometry.heads + head) * m.geometry.spt + (sec - 1);
-            diskRead(lba, al, s[ES], r[BX]);
-            note(n, `AH=02h read ${al} sector(s), LBA ${lba} → ${s[ES].toString(16).padStart(4, '0')}:${r[BX].toString(16).padStart(4, '0')}`, { lba, count: al });
-            r[AX] = al; return;
+            return sec === 0 || sec > g.spt || head >= g.heads ? -1 : (cyl * g.heads + head) * g.spt + (sec - 1);
+          };
+          switch (ah) {
+            case 0x00: case 0x0C: case 0x0D: case 0x10: case 0x11: case 0x16: case 0x17: ok(); return;
+            case 0x01: r[AX] = (r[AX] & 0xFF) | (mem[floppy ? 0x441 : 0x474] << 8); setF(CF, 0); return;
+            case 0x02: case 0x03: case 0x04: {
+              const lba = chs();
+              if (lba < 0 || lba + al > total) { fail(0x04); return; }
+              if (ah === 0x02) diskRead(lba, al, s[ES], r[BX]);
+              if (ah === 0x03) diskWrite(lba, al, s[ES], r[BX]);
+              note(n, `AH=${ah.toString(16).padStart(2, '0')}h ${['', '', 'read', 'write', 'verify'][ah]} ${al} sector(s), LBA ${lba} ↔ ${s[ES].toString(16).padStart(4, '0')}:${r[BX].toString(16).padStart(4, '0')}`, { lba, count: al });
+              ok(); r[AX] = al; return;
+            }
+            case 0x05: ok(); return;                                      // format track: pretend
+            case 0x08:
+              if (floppy) { r[BX] = (r[BX] & 0xFF00) | 0x04; r[CX] = (79 << 8) | 18; r[DX] = 0x0101; s[ES] = BIOS_SEG; r[DI] = 0xEFC7; }
+              else {
+                const cyls = Math.max(1, Math.ceil(total / (g.heads * g.spt))) - 1;
+                r[CX] = ((cyls & 0xFF) << 8) | ((cyls >> 2) & 0xC0) | g.spt; r[DX] = ((g.heads - 1) << 8) | 1;
+              }
+              ok(); return;
+            case 0x15: setF(CF, 0); if (floppy) r[AX] = 0x0200 | (r[AX] & 0xFF); else { r[AX] = 0x0300 | (r[AX] & 0xFF); r[CX] = total >>> 16; r[DX] = total & 0xFFFF; } return;
+            case 0x18: s[ES] = BIOS_SEG; r[DI] = 0xEFC7; ok(); return;
+            case 0x41: if (!floppy && r[BX] === 0x55AA) { r[BX] = 0xAA55; r[CX] = 1; r[AX] = 0x2100; setF(CF, 0); return; } fail(0x01); return;
+            case 0x42: case 0x43: {
+              const pk = lin(s[DS], r[SI]);
+              const count = rw(pk + 2), off = rw(pk + 4), seg = rw(pk + 6), lba = rw(pk + 8) + rw(pk + 10) * 0x10000;
+              if (lba + count > total) { fail(0x04); return; }
+              if (ah === 0x42) diskRead(lba, count, seg, off); else diskWrite(lba, count, seg, off);
+              note(n, `AH=${ah.toString(16)}h ${ah === 0x42 ? 'read' : 'write'} ${count} sector(s), LBA ${lba}`, { lba, count });
+              ok(); return;
+            }
+            default: fail(0x01); return;
           }
-          if (ah === 0x08) {
-            const cyls = Math.max(1, Math.ceil(m.image.length / 512 / (m.geometry.heads * m.geometry.spt))) - 1;
-            r[CX] = ((cyls & 0xFF) << 8) | ((cyls >> 2) & 0xC0) | m.geometry.spt;
-            r[DX] = ((m.geometry.heads - 1) << 8) | 1; r[AX] &= 0x00FF; return;
-          }
-          if (ah === 0x15) { r[AX] = 0x0300; return; }
-          if (ah === 0x41 && r[BX] === 0x55AA) { r[BX] = 0xAA55; r[CX] = 1; r[AX] = 0x2100; return; }
-          if (ah === 0x42) {
-            const pk = lin(s[DS], r[SI]);
-            const count = rw(pk + 2), off = rw(pk + 4), seg = rw(pk + 6), lba = rw(pk + 8) + rw(pk + 10) * 0x10000;
-            diskRead(lba, count, seg, off); r[AX] &= 0x00FF;
-            note(n, `AH=42h read ${count} sector(s), LBA ${lba}`, { lba, count });
-            return;
-          }
-          void drive;
-          r[AX] = 0x0100; setF(CF, 1); return;
         }
         case 0x15:
           if (ah === 0x86) { m.wakeAt = m.now() + ((r[CX] << 16) | r[DX]) / 1000; setF(CF, 0); return 'wait-time'; }
           if (ah === 0x88) { r[AX] = 0; setF(CF, 0); return; }
+          if (ah === 0x4F) { setF(CF, 1); return; }                       // keyboard intercept: pass the key on
+          if (ah === 0xC2) {                                              // PS/2 pointing device BIOS interface
+            const ps = m.ps2, bh = r[BX] >> 8;
+            const done = (ret = 0) => { r[AX] = (r[AX] & 0x00FF) | (ret << 8); setF(CF, ret !== 0); };
+            switch (al) {
+              case 0x00: ps.enabled = bh === 1; ps.dx = ps.dy = 0; note(n, `AX=C200h mouse ${ps.enabled ? 'enabled' : 'disabled'}`); return done();
+              case 0x01: ps.enabled = false; r[BX] = 0x00AA; return done();         // reset: BAT ok, device id 0
+              case 0x02: case 0x03: case 0x05: case 0x06: if (al === 0x06 && bh === 0) { r[BX] = 0; r[CX] = 0x02; r[DX] = 100; } return done();
+              case 0x04: r[BX] = r[BX] & 0x00FF; return done();                    // device type 0: standard PS/2
+              case 0x07: ps.cbSeg = s[ES]; ps.cbOff = r[BX]; note(n, `AX=C207h mouse handler → ${s[ES].toString(16).padStart(4, '0')}:${r[BX].toString(16).padStart(4, '0')}`); return done();
+              default: return done(1);
+            }
+          }
+          if (ah === 0x90 || ah === 0x91) { r[AX] &= 0x00FF; setF(CF, 0); return; }
           r[AX] = (r[AX] & 0x00FF) | 0x8600; setF(CF, 1); return;
         case 0x16:
           if (ah === 0x00 || ah === 0x10) {
@@ -397,8 +506,26 @@
             r[AX] = m.keys.shift(); return;
           }
           if (ah === 0x01 || ah === 0x11) { if (m.keys.length) { r[AX] = m.keys[0]; setF(ZF, 0); } else setF(ZF, 1); return; }
-          if (ah === 0x02) { r[AX] &= 0xFF00; return; }
+          if (ah === 0x02 || ah === 0x12) { r[AX] = (r[AX] & 0xFF00) | mem[0x417]; return; }
+          if (ah === 0x05) { m.keys.push(r[CX]); r[AX] &= 0xFF00; return; }
+          if (ah === 0x03) return;
           return;
+        case 0x33: {                                  // the mouse driver (HLE): positions in a 640x200 virtual screen
+          const ms = m.mouse, ax = r[AX];
+          switch (ax) {
+            case 0x00: case 0x21: ms.installed = true; ms.shown = 0; ms.minX = 0; ms.maxX = 639; ms.minY = 0; ms.maxY = 199; r[AX] = 0xFFFF; r[BX] = 2; note(n, 'AX=0000h mouse reset: 2 buttons'); return;
+            case 0x01: ms.shown++; return;
+            case 0x02: ms.shown--; return;
+            case 0x03: r[BX] = ms.buttons; r[CX] = Math.max(ms.minX, Math.min(ms.maxX, ms.x)); r[DX] = Math.max(ms.minY, Math.min(ms.maxY, ms.y)); return;
+            case 0x04: ms.x = r[CX]; ms.y = r[DX]; return;
+            case 0x05: case 0x06: r[AX] = ms.buttons; r[BX] = 0; r[CX] = ms.x; r[DX] = ms.y; return;
+            case 0x07: ms.minX = Math.min(r[CX], r[DX]); ms.maxX = Math.max(r[CX], r[DX]); return;
+            case 0x08: ms.minY = Math.min(r[CX], r[DX]); ms.maxY = Math.max(r[CX], r[DX]); return;
+            case 0x0B: r[CX] = 0; r[DX] = 0; return;
+            case 0x24: r[BX] = 0x0626; r[CX] = 0x0400; return;   // driver 6.26, PS/2 mouse
+            default: return;
+          }
+        }
         case 0x19: note(n, 'bootstrap: reboot'); m.reset(); return;
         case 0x1C: return;                          // user timer tick: nothing by default
         case 0x1A: {
@@ -426,6 +553,8 @@
       mem[0x460] = 0x0E; mem[0x461] = 0x0D;                      // underline cursor
       // ROM: the timer handler, the font, the reset vector, the BIOS date and model byte
       mem.set(INT08_CODE, lin(BIOS_SEG, INT08_OFF));
+      mem.set([0x83, 0xC4, 0x08, 0xCF], lin(BIOS_SEG, MOUSE_TRAMP));   // add sp, 8 / iret
+      Object.assign(m.ps2, { enabled: false, cbSeg: 0, cbOff: 0, dx: 0, dy: 0, dirty: false, last: 0 });
       ww(8 * 4, INT08_OFF); ww(8 * 4 + 2, BIOS_SEG);
       mem.set(m.font, lin(FONT_SEG, FONT_OFF));
       mem.set([0xCD, 0x19], lin(BIOS_SEG, POST_OFF));            // POST entry: INT 19h, boot again
@@ -436,45 +565,89 @@
       const t = Math.floor((d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) * 18.2065);
       ww(0x46C, t & 0xFFFF); ww(0x46E, t >>> 16);                // ticks since midnight
       m.dac.set(defaultPalette()); m.dacVersion++;
+      // the diskette parameter table at the IBM address, also pointed to by INT 1Eh
+      mem.set([0xDF, 0x02, 0x25, 0x02, 0x12, 0x1B, 0xFF, 0x6C, 0xF6, 0x0F, 0x08], lin(BIOS_SEG, 0xEFC7));
+      ww(0x1E * 4, 0xEFC7); ww(0x1E * 4 + 2, BIOS_SEG);
+      mem[0x475] = m.drive >= 0x80 ? 1 : 0;                      // number of hard disks
+      // chips back to their power-on state
+      for (const t of pit) { t.reload = 0x10000; t.rw = 3; t.flip = 0; t.latched = null; t.start = m.now(); }
+      m.tickMs = TICK_MS; picMask = 0; m.irqBase = 0x08; icw = 0; port61 = 0; speaker();
+      kbdQueue.length = 0; irq1Pending = 0; mem[0x417] = 0;
       r.fill(0); s.fill(0); m.flags = 0x0002 | IF;
       m.halted = false; m.fault = null; m.waiting = null; m.keys.length = 0; m.instructions = 0;
-      m.irqPending = 0; m.irqs = 0; m.lastTick = m.now();
+      m.irqPending = 0; m.irqs = 0; m.kbdIrqs = 0; m.lastTick = m.now(); m.trail.fill(0);
       clearScreen();
       if (opts.post) opts.post(m);
       // INT 19h: load sector 0 of the boot disk at 0000:7C00 and check the signature
       diskRead(0, 1, 0, 0x7C00);
       if (rw(0x7DFE) !== 0xAA55) { m.print('No bootable device: signature 55AA missing'); m.halted = true; }
-      r[DX] = 0x0080; r[SP] = 0x7C00; s[CS] = 0; m.ip = 0x7C00;
+      r[DX] = m.drive; r[SP] = 0x7C00; s[CS] = 0; m.ip = 0x7C00;
       if (m.hooks.reboot) m.hooks.reboot();
     };
 
-    // ---------- one instruction ----------
-    // the PIT: call with the current time, queues IRQ0 for every 54.9 ms that passed
+    // ---------- interrupts from the outside world ----------
+    // the PIT: call with the current time, queues IRQ0 for every channel-0 period that passed
     m.tickTimer = function (now = m.now()) {
       if (m.lastTick === null) m.lastTick = now;
-      const due = Math.floor((now - m.lastTick) / TICK_MS);
-      if (due > 0) { m.lastTick += due * TICK_MS; m.irqPending = Math.min(m.irqPending + due, 4); }
-      if (now - m.lastTick > TICK_MS * 8) m.lastTick = now;    // tab was asleep: don't flood
+      const due = Math.floor((now - m.lastTick) / m.tickMs);
+      if (due > 0) { m.lastTick += due * m.tickMs; m.irqPending = Math.min(m.irqPending + due, 4); }
+      if (now - m.lastTick > Math.max(m.tickMs * 8, 250)) m.lastTick = now;    // tab was asleep: don't flood
     };
-    function deliverIrq0() {               // hardware interrupt: push FLAGS, CS, IP and vector through 08h
-      m.irqPending--; m.irqs++;
+    const int9Hooked = () => { const v = m.irqBase + 1; return !(rw(v * 4 + 2) === BIOS_SEG && rw(v * 4) === ENTRY[0x09]); };
+    let lastAscii = 0;
+    function shiftFlags(scan, down) {
+      const bit = { 0x36: 1, 0x2A: 2, 0x1D: 4, 0x38: 8 }[scan & 0x7F];
+      if (bit) mem[0x417] = down ? mem[0x417] | bit : mem[0x417] & ~bit;
+    }
+    // a key went down: the BIOS buffers it, or, if a program hooked INT 09h, the keyboard
+    // controller raises IRQ1 with the make code on port 60h
+    m.keyDown = (ascii, scan = 0) => {
+      shiftFlags(scan, true);
+      if (int9Hooked()) { if (kbdQueue.length < 32) { kbdQueue.push({ scan: scan & 0x7F, ascii }); irq1Pending++; } return; }
+      lastScan = scan & 0xFF;
+      if (scan || ascii) m.keys.push(((scan & 0xFF) << 8) | (ascii & 0xFF));
+      if (m.keys.length > 16) m.keys.shift();
+    };
+    m.keyUp = (scan) => {                      // break code: scan | 80h
+      shiftFlags(scan, false);
+      if (int9Hooked() && kbdQueue.length < 32) { kbdQueue.push({ scan: (scan & 0x7F) | 0x80, ascii: 0 }); irq1Pending++; }
+    };
+    m.key = (ascii, scan = 0) => m.keyDown(ascii, scan);
+    function bios9() {                         // a program chained INT 09h to the BIOS: buffer the key it read
+      if (!(lastScan & 0x80) && (lastScan || lastAscii)) { m.keys.push((lastScan << 8) | lastAscii); if (m.keys.length > 16) m.keys.shift(); }
+    }
+    function deliverIrq(irq) {                 // push FLAGS, CS, IP and vector through the PIC's base + irq
       m.halted = false;
       if (m.waiting === 'key') m.waiting = null;   // IP still points at the INT 16h, it runs again after IRET
+      if (irq === 0) { m.irqPending--; m.irqs++; }
+      else { irq1Pending--; const k = kbdQueue.shift(); lastScan = k.scan; lastAscii = k.ascii; kbdFull = 1; m.kbdIrqs++; }
       push(m.flags); push(s[CS]); push(m.ip);
       setF(IF, 0); setF(TF, 0);
-      m.ip = rw(8 * 4); s[CS] = rw(8 * 4 + 2);
+      const v = m.irqBase + irq;
+      m.ip = rw(v * 4); s[CS] = rw(v * 4 + 2);
       m.instructions++;
       return true;
     }
 
+    // ---------- one instruction ----------
     m.step = function () {
       if (m.fault) return false;
-      const irq = m.irqPending > 0 && (m.flags & IF) && m.waiting !== 'time';
-      if (m.halted) return irq ? deliverIrq0() : false;          // HLT sleeps until an interrupt
-      if (irq) return deliverIrq0();
+      let irq = -1;
+      if ((m.flags & IF) && m.waiting !== 'time') {
+        if (m.irqPending > 0 && !(picMask & 1)) irq = 0;
+        else if (irq1Pending > 0 && !(picMask & 2)) irq = 1;
+      }
+      if (irq < 0 && (m.flags & IF) && m.waiting !== 'time') {      // IRQ12: the PS/2 mouse, at most every 10 ms
+        const ps = m.ps2;
+        if (ps.enabled && ps.dirty && (ps.cbSeg || ps.cbOff) && m.now() - ps.last >= 10) return deliverMouse();
+      }
+      if (m.halted) return irq >= 0 ? deliverIrq(irq) : false;   // HLT sleeps until an interrupt
+      if (irq >= 0) return deliverIrq(irq);
       if (m.waiting === 'time') { if (m.now() < m.wakeAt) return false; m.waiting = null; }
       if (m.waiting === 'key') { if (!m.keys.length) return false; m.waiting = null; }
       opStart = m.ip; opSeg = s[CS];
+      if (opSeg === BIOS_SEG && opStart === ENTRY[0x09]) bios9();
+      m.trail[m.trailPos++ & 63] = (opSeg << 16) | opStart;
       segOvr = -1; rep = 0;
       let op;
       for (;;) {                         // prefixes
@@ -487,7 +660,33 @@
       return true;
     };
     m.pc = () => lin(s[CS], m.ip);
-    m.key = (ascii, scan = 0) => { lastScan = scan & 0xFF; m.keys.push(((scan & 0xFF) << 8) | (ascii & 0xFF)); if (m.keys.length > 16) m.keys.shift(); };
+    // the mouse: absolute position for the INT 33h driver, deltas for the PS/2 BIOS callback
+    m.setMouse = (x, y, buttons) => {
+      const ms = m.mouse, ps = m.ps2;
+      ps.dx += (x | 0) - ms.x; ps.dy += (y | 0) - ms.y;
+      if (buttons !== ms.buttons) ps.dirty = true;
+      ms.x = x | 0; ms.y = y | 0; ms.buttons = buttons;
+      if (ps.dx || ps.dy) ps.dirty = true;
+    };
+    m.moveMouse = (dx, dy, buttons = m.mouse.buttons) => m.setMouse(m.mouse.x + dx, m.mouse.y + dy, buttons);
+    // like the BIOS IRQ12 handler: push status, X, Y, 0 and far-call the program's handler,
+    // which returns with RETF to a ROM stub that drops the 4 words and IRETs
+    function deliverMouse() {
+      const ps = m.ps2, ms = m.mouse;
+      const cl = v => Math.max(-255, Math.min(255, v));
+      const dx = cl(ps.dx), dy = cl(ps.dy);
+      ps.dx -= dx; ps.dy -= dy; ps.dirty = !!(ps.dx || ps.dy); ps.last = m.now();
+      const status = 0x08 | (ms.buttons & 1) | (ms.buttons & 2) | (dx < 0 ? 0x10 : 0) | (dy > 0 ? 0x20 : 0);   // PS/2 Y grows upwards
+      m.halted = false;
+      if (m.waiting === 'key') m.waiting = null;
+      push(m.flags); push(s[CS]); push(m.ip);
+      setF(IF, 0); setF(TF, 0);
+      push(status); push(dx & 0xFF); push((-dy) & 0xFF); push(0);
+      push(BIOS_SEG); push(MOUSE_TRAMP);
+      s[CS] = ps.cbSeg; m.ip = ps.cbOff;
+      m.mouseIrqs = (m.mouseIrqs || 0) + 1; m.instructions++;
+      return true;
+    }
     Object.defineProperty(m, 'mode', { get: () => mem[0x449] });
 
     function stringOp(op) {

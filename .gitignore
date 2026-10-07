@@ -8,3 +8,6 @@ src/data/listing.json
 os/almo7aya.lst
 os/kernel.bin
 os/sine.inc
+os/programs/*/gen/
+os/include/sine.inc
+os/cache/

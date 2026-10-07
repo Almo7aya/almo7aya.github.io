@@ -1,0 +1,9 @@
+{
+  "id": "7os",
+  "title": "7OS 0.8",
+  "image": "almo7aya.img",
+  "drive": "hdd",
+  "fs": true,
+  "description": "a small real-mode OS: 7FS filesystem, INT 1Ch clock, shell, mode 13h demo",
+  "keys": "type help, dir, demo"
+}
