@@ -139,7 +139,7 @@ if (existsSync(extDir)) for (const f of readdirSync(extDir).filter(f => f.endsWi
   if (existsSync(join(out, meta.image))) disks.push({ ...meta, external: true });
 }
 for (const d of disks) if (!d.size && existsSync(join(out, d.image))) d.size = readFileSync(join(out, d.image)).length;
-const order = ['7os', 'player', 'intro', 'maze', 'gui', 'snake', 'invaders', 'panic', 'elks'];
+const order = ['intro', '7os', 'player', 'maze', 'gui', 'snake', 'invaders', 'panic', 'elks'];   // the first one boots by default
 disks.sort((a, b) => (order.indexOf(a.id) + 99) % 99 - (order.indexOf(b.id) + 99) % 99);
 writeFileSync(join(out, 'disks.json'), JSON.stringify(disks.map(({ id, title, image, drive, description, keys, size, external, license, source }) =>
   ({ id, title, image, drive: drive || 'hdd', description, keys, size, external: !!external, license, source })), null, 2));

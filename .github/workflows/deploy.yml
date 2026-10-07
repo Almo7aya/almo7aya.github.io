@@ -24,6 +24,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Fetch prebuilt external disks (ELKS)
+        run: npm run os:fetch
+
       - name: Build 7OS and the site
         run: npm run build
 

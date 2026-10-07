@@ -53,11 +53,22 @@ const SCAN = { esc: [27, 1], bksp: [8, 0x0E], tab: [9, 0x0F], enter: [13, 0x1C],
 for (let i = 1; i <= 10; i++) SCAN['f' + i] = [0, 0x3A + i];
 const ROWS = ['1234567890-=', 'qwertyuiop[]', "asdfghjkl;'", 'zxcvbnm,./'], ROWBASE = [0x02, 0x10, 0x1E, 0x2C];
 ROWS.forEach((row, r) => [...row].forEach((c, i) => { SCAN[c] = [c.charCodeAt(0), ROWBASE[r] + i]; }));
+SCAN[' '] = SCAN.space; SCAN['\\'] = [92, 0x2B]; SCAN['`'] = [96, 0x29];
+// US layout: the shifted characters and the key they live on (typed with Shift held, for INT 09h programs)
+const SHIFTED = Object.fromEntries([...'!@#$%^&*()_+{}:"<>?~|'].map((c, i) => [c, '1234567890-=[];\',./`\\'[i]]));
+const shifted = c => c.length === 1 && (SHIFTED[c] || c !== c.toLowerCase());
 const keyOf = name => {
-  const k = SCAN[name.toLowerCase()];
+  const k = SCAN[SHIFTED[name] || name.toLowerCase()];
   if (!k) throw new Error(`unknown key ${name}`);
-  return name.length === 1 && name !== name.toLowerCase() ? [name.charCodeAt(0), k[1]] : k;
+  return name.length === 1 && shifted(name) ? [name.charCodeAt(0), k[1]] : k;
 };
+function typeChar(c) {
+  const k = c === '\n' ? SCAN.enter : keyOf(c), sh = shifted(c);
+  if (sh) { m.keyDown(0, 0x2A); run(10); }
+  m.keyDown(k[0], k[1]); run(20); m.keyUp(k[1]);
+  if (sh) { run(10); m.keyUp(0x2A); }
+  run(15);
+}
 
 function png(file) {
   const f = new Frame(); f.render(m); f.sig = ''; f.frames = 31; f.render(m);   // a frame with the cursor visible
@@ -81,7 +92,7 @@ run(1500);                                               // power on and boot
 for (const a of actions) {
   const [cmd, ...rest] = a.split(':'), arg = rest.join(':');
   if (cmd === 'wait') run(+arg);
-  else if (cmd === 'type') for (const c of arg.replace(/\\n/g, '\n')) { if (c === '\n') { m.keyDown(13, 0x1C); run(20); m.keyUp(0x1C); } else { const k = keyOf(c); m.keyDown(c.charCodeAt(0), k[1]); run(20); m.keyUp(k[1]); } run(15); }
+  else if (cmd === 'type') for (const c of arg.replace(/\\n/g, '\n')) typeChar(c);
   else if (cmd === 'key') { const k = keyOf(arg); m.keyDown(k[0], k[1]); run(40); m.keyUp(k[1]); run(40); }
   else if (cmd === 'down') { const k = keyOf(arg); m.keyDown(k[0], k[1]); run(20); }
   else if (cmd === 'up') { const k = keyOf(arg); m.keyUp(k[1]); run(20); }

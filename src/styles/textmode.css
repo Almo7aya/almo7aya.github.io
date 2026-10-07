@@ -18,7 +18,7 @@ button { font: inherit; color: inherit; background: none; border: 0; cursor: poi
 .title .name { font: 400 23px/1 var(--dos); color: var(--white); text-decoration: none; }
 .title .name .s7 { color: var(--yellow); }
 .title a.name:hover { background: none; }
-.title .who { color: var(--cyan); }
+.title .who { color: var(--cyan); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .title .mode { margin-left: auto; color: var(--gray); white-space: nowrap; }
 .title .ghb { margin-left: 12px; background: var(--yellow); color: var(--blue); padding: 1px 10px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 .title .ghb:hover { background: var(--white); color: var(--blue); }

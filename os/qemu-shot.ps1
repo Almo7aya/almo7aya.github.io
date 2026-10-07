@@ -2,7 +2,8 @@
 #   os/qemu-shot.ps1 -Img public/os/x.img -Out shots -Steps 'wait:3000','shot:boot','type text','key:ret','mouse:10,-5,1','mon:info registers'
 #   QEMU path: $env:QEMU or D:\Trinity\x86_64-softmmu\qemu-system-x86_64.exe
 # boots an image in QEMU headless, types commands via the monitor, saves PNG screenshots
-param([string]$Img, [string]$Out, [string[]]$Steps, [int]$Port = 45454)
+#   -Floppy boots the image as drive A: (if=floppy, -boot a) instead of a hard disk
+param([string]$Img, [string]$Out, [string[]]$Steps, [int]$Port = 45454, [switch]$Floppy)
 Add-Type -AssemblyName System.Drawing
 # QEMU's working directory is not ours: make the paths absolute
 $Img = (Resolve-Path $Img).Path
@@ -15,7 +16,9 @@ if ($Steps.Count -eq 1) {
 }
 $q = if ($env:QEMU) { $env:QEMU } else { 'D:\Trinity\x86_64-softmmu\qemu-system-x86_64.exe' }
 $port = $Port
-$p = Start-Process $q -ArgumentList @('-drive', "format=raw,file=$Img", '-m', '2048', '-display', 'none', '-monitor', "tcp:127.0.0.1:$port,server,nowait") -PassThru -WindowStyle Hidden
+# snapshot=on: the guest's disk writes go to a temporary overlay, the image file stays untouched
+$drive = if ($Floppy) { @('-drive', "format=raw,if=floppy,snapshot=on,file=$Img", '-boot', 'a') } else { @('-drive', "format=raw,snapshot=on,file=$Img") }
+$p = Start-Process $q -ArgumentList ($drive + @('-m', '2048', '-display', 'none', '-monitor', "tcp:127.0.0.1:$port,server,nowait")) -PassThru -WindowStyle Hidden
 Start-Sleep -Milliseconds 1500
 $c = New-Object System.Net.Sockets.TcpClient('127.0.0.1', $port)
 $s = $c.GetStream(); $w = New-Object System.IO.StreamWriter($s); $w.AutoFlush = $true

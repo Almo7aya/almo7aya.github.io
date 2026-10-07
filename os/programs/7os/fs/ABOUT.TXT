@@ -1,12 +1,18 @@
 Ali Almohaya (Almo7aya)
 -----------------------
-Staff web engineer at Anghami and OSN+.
+Staff Web Engineer at Anghami and OSN+.
 
-I build apps for the web and for TVs, and I mostly focus on the video
-player: playback and DRM.
+I build the web and smart-TV apps for both streaming services, and I
+specialise in video playback and DRM. It's my favourite kind of work:
+when it's done right, nobody notices, they just watch.
 
-After hours I go lower: emulators, C++, GPUs and home networking.
-This OS, and the 8086 it runs on, are one of those after-hours things.
+Skills: TypeScript, JavaScript, React, Preact, Node.js, C++, Go, Rust,
+Lua, Docker, GitHub Actions, Linux and OpenWrt.
 
-From Yemen, living in Riyadh.
+Beyond the web I like it close to the metal: low-level programming,
+emulation, C++ and graphics. This OS and the 8086 it runs on are what
+happens when a web engineer is left alone with an assembler.
+Type projects for the list.
+
+From Yemen, living in Riyadh. Panics occasionally (try: panic).
 github.com/Almo7aya

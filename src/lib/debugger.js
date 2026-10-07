@@ -5,6 +5,7 @@
 //   Stack    the words at SS:SP, with call and interrupt frames recognised
 import { VGA } from './vga.js';
 import { disasm, window as disasmWindow } from './disasm8086.js';
+import { createTV } from './tv.js';
 
 const VIDEO_SECS = 427;
 // names for the ROM, so stepping into the BIOS reads like a real debugger with BIOS symbols
@@ -25,6 +26,17 @@ const SCAN = {
   Home: 0x47, ArrowUp: 0x48, PageUp: 0x49, ArrowLeft: 0x4B, ArrowRight: 0x4D, End: 0x4F, ArrowDown: 0x50, PageDown: 0x51, Insert: 0x52, Delete: 0x53,
 };
 const ASCII_SPECIAL = { Enter: 13, Backspace: 8, Tab: 9, Escape: 27 };
+// a character -> [scan code, needs Shift] on a US keyboard
+const US = { '\r': 'Enter', '\n': 'Enter', ' ': 'Space', '-': 'Minus', '=': 'Equal', '[': 'BracketLeft', ']': 'BracketRight', ';': 'Semicolon',
+  "'": 'Quote', '`': 'Backquote', '\\': 'Backslash', ',': 'Comma', '.': 'Period', '/': 'Slash', '\b': 'Backspace', '\t': 'Tab' };
+const US_SHIFT = { '!': '1', '@': '2', '#': '3', $: '4', '%': '5', '^': '6', '&': '7', '*': '8', '(': '9', ')': '0', _: '-', '+': '=',
+  '{': '[', '}': ']', ':': ';', '"': "'", '~': '`', '|': '\\', '<': ',', '>': '.', '?': '/' };
+function charScan(c) {
+  const shift = c in US_SHIFT || /[A-Z]/.test(c);
+  const base = US_SHIFT[c] ?? c.toLowerCase();
+  const code = US[base] ?? (/[a-z]/.test(base) ? 'Key' + base.toUpperCase() : /[0-9]/.test(base) ? 'Digit' + base : '');
+  return [SCAN[code] || 0, shift];
+}
 
 export function initDebugger() {
   const X86 = window.X86;
@@ -235,7 +247,9 @@ export function initDebugger() {
     $('#ptime').textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
     if (!m.fault) $('#pstate').textContent = running ? '▶ playing' : '❚❚ paused';
   }
+  const tv = createTV($('#tvCv'), { reduce });
   function setMood(panic) {
+    tv.setPanic(panic);
     $('#mood').textContent = panic ? 'PANIC' : 'CALM'; $('#mood').className = panic ? 'p' : '';
     $('#wWatch').classList.toggle('stalled', panic);
     $('#pstate').textContent = panic ? '⟳ buffering…' : '▶ playing'; $('#pstate').className = panic ? 'p' : '';
@@ -296,6 +310,7 @@ export function initDebugger() {
       }
       renderAll(false);
     }
+    try { tv.draw(now); } catch (e) { /* the TV is decoration; never let it stop the PC */ }
     requestAnimationFrame(frame);
   }
   function go() { if (!m) return; if (m.fault) { log('the CPU faulted. F2 to reboot.', 'y'); return; } running = !running; log(running ? 'go' : 'Break (user)', running ? 'w' : 'y'); codeKey = ''; renderAll(true); }
@@ -315,14 +330,41 @@ export function initDebugger() {
   /* ---------- keyboard and mouse: the screen is the PC's keyboard and mouse ---------- */
   crt.addEventListener('keydown', e => {
     ensureAudio();
-    if (!m || bootMenuOpen() || e.ctrlKey || e.metaKey || (/^F\d+$/.test(e.key) && !['F1', 'F3', 'F4', 'F10'].includes(e.key))) return;
+    // Ctrl+key goes to the PC (Ctrl-C, Ctrl-D for ELKS); Ctrl+Shift+key and Cmd stay with the browser
+    if (!m || bootMenuOpen() || e.metaKey || (e.ctrlKey && e.shiftKey) || (/^F\d+$/.test(e.key) && !['F1', 'F3', 'F4', 'F10'].includes(e.key))) return;
     const scan = SCAN[e.code];
-    const ascii = ASCII_SPECIAL[e.key] ?? (e.key.length === 1 && e.key.charCodeAt(0) < 128 ? e.key.charCodeAt(0) : 0);
+    let ascii = ASCII_SPECIAL[e.key] ?? (e.key.length === 1 && e.key.charCodeAt(0) < 128 ? e.key.charCodeAt(0) : 0);
+    if (e.ctrlKey && /^[a-z\[\\\]]$/i.test(e.key)) ascii = e.key.toUpperCase().charCodeAt(0) & 0x1F;
     if (!scan && !ascii) return;
     e.preventDefault();
     m.keyDown(ascii, scan || 0);
   });
   crt.addEventListener('keyup', e => { const scan = SCAN[e.code]; if (m && scan) { e.preventDefault(); m.keyUp(scan); } });
+  // phones and tablets: a key bar for the keys a soft keyboard lacks, and ⌨ opens the soft keyboard itself
+  const soft = $('#softKbd');
+  $('#touchKeys').addEventListener('pointerdown', e => {
+    const b = e.target.closest('button'); if (!b || !m) return;
+    e.preventDefault(); ensureAudio();
+    if (b.hasAttribute('data-kbd')) { soft.focus({ preventScroll: true }); return; }
+    if (b.hasAttribute('data-boot')) { openBootMenu(); return; }
+    const code = b.dataset.key, scan = SCAN[code];
+    if (bootMenuOpen()) { crt.dispatchEvent(new KeyboardEvent('keydown', { key: code === 'Space' ? ' ' : code, bubbles: true })); return; }
+    m.keyDown(code === 'Space' ? 32 : ASCII_SPECIAL[code] || 0, scan);
+    const up = () => { m.keyUp(scan); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); };
+    addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  });
+  soft.addEventListener('input', e => {
+    if (!m) return;
+    if (e.inputType === 'deleteContentBackward') { m.keyDown(8, 0x0E); m.keyUp(0x0E); }
+    else if (e.inputType === 'insertLineBreak') { m.keyDown(13, 0x1C); m.keyUp(0x1C); }
+    else if (e.data) window.sevenOS.type(e.data);
+    soft.value = '';
+  });
+  soft.addEventListener('keydown', e => {                  // Enter and Backspace arrive as keys on most soft keyboards
+    if (!m) return;
+    if (e.key === 'Enter') { e.preventDefault(); m.keyDown(13, 0x1C); m.keyUp(0x1C); }
+    else if (e.key === 'Backspace' && !soft.value) { e.preventDefault(); m.keyDown(8, 0x0E); m.keyUp(0x0E); }
+  });
   crt.addEventListener('focus', () => { $('#wScreen').classList.add('typing'); $('#kbdHint').textContent = 'keyboard + mouse attached'; });
   crt.addEventListener('blur', () => { $('#wScreen').classList.remove('typing'); $('#kbdHint').textContent = 'click here and type'; });
   const mouseAt = e => {
@@ -394,8 +436,9 @@ export function initDebugger() {
   const load = url => fetch(url).then(r => { if (!r.ok) throw new Error(`${url} ${r.status}`); return r.arrayBuffer(); });
   async function boot(id) {
     disk = disks.find(d => d.id === id) || disks[0];
-    try { localStorage.setItem('disk', disk.id); } catch (e) {}
-    const url = new URL(location.href); url.searchParams.set('disk', disk.id); history.replaceState(null, '', url);
+    const url = new URL(location.href);
+    if (disk === disks[0]) url.searchParams.delete('disk'); else url.searchParams.set('disk', disk.id);
+    history.replaceState(null, '', url);
     $('#diskName').textContent = disk.title; $('#diskTitle').textContent = `8086 · real mode · ${disk.title}`;
     $('#imgSize').textContent = (disk.size || 0).toLocaleString('en-US');
     $('#imgLink').href = `/os/${disk.image}`; $('#imgLink').textContent = `⬇ ${disk.image}`;
@@ -440,15 +483,22 @@ export function initDebugger() {
 
   window.sevenOS = {
     machine: null, disasm: (seg, off) => disasm(window.sevenOS.machine.rb, seg, off).text,
-    type(s) { for (const c of s) window.sevenOS.machine.keyDown(c.charCodeAt(0), c === '\r' ? 0x1C : 0); },
+    type(s) {                                         // real make/break codes, so programs that hook INT 09h see it too
+      const mm = window.sevenOS.machine;
+      for (const c of s) {
+        const [scan, shift] = charScan(c);
+        if (shift) mm.keyDown(0, 0x2A);
+        mm.keyDown(c === '\n' ? 13 : c.charCodeAt(0), scan); mm.keyUp(scan);
+        if (shift) mm.keyUp(0x2A);
+      }
+    },
     run(n = 100000) { const mm = window.sevenOS.machine; for (let i = 0; i < n && mm.step(); i++); if (mm.fault) onFault(); renderAll(true); return mm.instructions; },
     boot: id => boot(id),
   };
 
   Promise.all([load('/os/vgafont.bin'), fetch('/os/disks.json').then(r => r.json())]).then(([f, list]) => {
     font = new Uint8Array(f); disks = list;
-    let want = new URL(location.href).searchParams.get('disk');
-    try { want ??= localStorage.getItem('disk'); } catch (e) {}
+    const want = new URL(location.href).searchParams.get('disk');   // no ?disk= boots the first disk, 7INTRO
     boot(disks.some(d => d.id === want) ? want : disks[0].id);
   }).catch(err => log(`could not load the disks (${err.message}). run npm run os.`, 'r'));
   requestAnimationFrame(frame);

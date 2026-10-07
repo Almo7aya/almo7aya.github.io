@@ -1303,20 +1303,20 @@ s_presents      db "PRESENTS", 0
 girl_lines      dw g1, g2, 0, g3, g4, g5, 0, g6, g7, g8, g9, 0xFFFF
 g1      db "ALI ALMOHAYA", 0
 g2      db "aka Almo7aya", 0
-g3      db "staff web", 0
-g4      db "engineer at", 0
+g3      db "STAFF WEB", 0
+g4      db "ENGINEER", 0
 g5      db "Anghami & OSN+", 0
-g6      db "web + TV apps,", 0
-g7      db "mostly the", 0
-g8      db "video player:", 0
+g6      db "web & smart-TV", 0
+g7      db "streaming apps", 0
+g8      db "loves video", 0
 g9      db "playback & DRM", 0
 
 tunnel_words    dw w1, w2, w3, w4, w5
-w1      db "AFTER HOURS", 0
-w2      db "EMULATORS", 0
-w3      db "C++", 0
-w4      db "GPUS", 0
-w5      db "NETWORKING", 0
+w1      db "OPEN SOURCE", 0
+w2      db "EMULATION", 0
+w3      db "C++ & GPUS", 0
+w4      db "NEOVIM", 0
+w5      db "GO & RUST", 0
 
 cards   dw c1a, c1b, c1c
         dw c2a, c2b, 0

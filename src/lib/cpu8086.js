@@ -605,6 +605,7 @@
     };
     const int9Hooked = () => { const v = m.irqBase + 1; return !(rw(v * 4 + 2) === BIOS_SEG && rw(v * 4) === ENTRY[0x09]); };
     let lastAscii = 0;
+    const MODIFIER = new Set([0x1D, 0x2A, 0x36, 0x38, 0x3A]);
     function shiftFlags(scan, down) {
       const bit = { 0x36: 1, 0x2A: 2, 0x1D: 4, 0x38: 8 }[scan & 0x7F];
       if (bit) mem[0x417] = down ? mem[0x417] | bit : mem[0x417] & ~bit;
@@ -615,6 +616,7 @@
       shiftFlags(scan, true);
       if (int9Hooked()) { if (kbdQueue.length < 32) { kbdQueue.push({ scan: scan & 0x7F, ascii }); irq1Pending++; } return; }
       lastScan = scan & 0xFF;
+      if (MODIFIER.has(scan & 0x7F)) return;     // shift, ctrl, alt, caps lock only change the flags, like the ROM's INT 09h
       if (scan || ascii) m.keys.push(((scan & 0xFF) << 8) | (ascii & 0xFF));
       if (m.keys.length > 16) m.keys.shift();
     };
@@ -624,7 +626,7 @@
     };
     m.key = (ascii, scan = 0) => m.keyDown(ascii, scan);
     function bios9() {                         // a program chained INT 09h to the BIOS: buffer the key it read
-      if (!(lastScan & 0x80) && (lastScan || lastAscii)) { m.keys.push((lastScan << 8) | lastAscii); if (m.keys.length > 16) m.keys.shift(); }
+      if (!(lastScan & 0x80) && !MODIFIER.has(lastScan) && (lastScan || lastAscii)) { m.keys.push((lastScan << 8) | lastAscii); if (m.keys.length > 16) m.keys.shift(); }
     }
     function deliverIrq(irq) {                 // push FLAGS, CS, IP and vector through the PIC's base + irq
       m.halted = false;

@@ -1138,12 +1138,12 @@ card_tab        dw c_welcome, c_work, c_kyty, c_lab, c_learn, c_gowan, c_opening
 c_welcome       db 14, 3, "ALMO7AYA ", 0xFA, " 7MAZE", 0
                 db "arrows/WASD to walk, Q/E to strafe", 0
                 db "face a poster up close to read it", 0
-                db "a gallery of Ali Almohaya's work", 0
+                db "Ali's work, in a maze. mind the walls", 0
 c_work          db 12, 4, "WORK ", 0xFA, " ANGHAMI & OSN+", 0
-                db "staff web engineer at Anghami & OSN+", 0
-                db "builds apps for the web and for TVs,", 0
-                db "mostly the video player:", 0
-                db "playback and DRM.", 0
+                db "Staff Web Engineer at Anghami & OSN+.", 0
+                db "Web and smart-TV streaming apps,", 0
+                db "with a soft spot for video playback", 0
+                db "and DRM.", 0
 c_kyty          db 5, 4, "KYTYPS5", 0
                 db "open-source PS5 emulator, in C++.", 0
                 db "Ali contributes fixes: crash-log", 0
@@ -1178,8 +1178,8 @@ c_github        db 3, 2, "GITHUB", 0
 c_about         db 6, 4, "ABOUT ALI", 0
                 db "Ali Almohaya, from Yemen,", 0
                 db "living in Riyadh.", 0
-                db "after hours: emulators, C++, GPUs,", 0
-                db "networking.", 0
+                db "Beyond the web: low-level code,", 0
+                db "emulation and C++, all for fun.", 0
 
 palette:        incbin "palette.bin"
 shade_tab:      incbin "shade.bin"

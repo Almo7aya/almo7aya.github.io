@@ -5,10 +5,12 @@
   "description": "almo7aya.dev: a debugger running 7OS, a tiny real-mode OS, on an 8086 emulator in the browser",
   "scripts": {
     "os": "node os/build.mjs",
+    "os:fetch": "node os/fetch-external.mjs",
     "test:os": "node os/test.mjs help work panic",
     "dev": "npm run os && astro dev",
     "build": "npm run os && astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "girl": "node os/girl-sheet.mjs"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.19",

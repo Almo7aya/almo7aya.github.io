@@ -1181,14 +1181,14 @@ sine:                                   ; 256 bytes, 0..63, written by build.mjs
 ; -------------------------------------------------------------------
 ; text
 ; -------------------------------------------------------------------
-s_bar_left   db " 7OS 0.8 ", 0xB3, " Ali Almohaya ", 0xB3, " staff web engineer", 0
+s_bar_left   db " 7OS 0.8 ", 0xB3, " Ali Almohaya ", 0xB3, " Staff Web Engineer", 0
 s_bar_gh     db "github.com/Almo7aya", 0
 
 s_boot  db C(A_DIM), "7OS 0.8 ", 0xFA, " 8086 real mode ", 0xFA, " kernel at 0000:7E00 ", 0xFA, " INT 1Ch hooked", 13, 10, 13, 10
         db C(A_HI), "Ali Almohaya (Almo", C(A_YELLOW), "7", C(A_HI), "aya)", 13, 10
-        db C(A_TXT), "Staff web engineer @ Anghami & OSN+", 13, 10
-        db "Video player, DRM and TV apps by day.", 13, 10
-        db "Emulators and C++ after hours.", 13, 10
+        db C(A_TXT), "Staff Web Engineer @ Anghami & OSN+", 13, 10
+        db "Web and smart-TV streaming apps, with a soft spot for video playback and DRM.", 13, 10
+        db "Beyond the web: low-level code, emulation and C++, just for the fun of it.", 13, 10
         db "Yemen ", 0x1A, " Riyadh", 13, 10
         db C(A_CYAN), "github.com/Almo", C(A_YELLOW), "7", C(A_CYAN), "aya", 13, 10, 13, 10
         db C(A_DIM), "7FS mounted from LBA 32: ", C(A_HI), 0

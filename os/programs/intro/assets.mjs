@@ -107,17 +107,17 @@ export default async ({ dir, gen, root, CP437 }) => {
   // ---------------- scroller text (only facts about Ali) ----------------
   const scroll = [
     'Hi! This is Ali Almohaya, aka Almo7aya',
-    'staff web engineer at Anghami & OSN+',
-    'I build apps for the web and for TVs, mostly the video player: playback and DRM',
-    'after hours: emulators, C++, GPUs and networking',
+    'Staff Web Engineer at Anghami & OSN+, building web and smart-TV streaming apps',
+    'with a soft spot for video playback and DRM',
+    'TypeScript, React, Node.js, C++, Go, Rust and Lua',
     'from Yemen, living in Riyadh',
-    'projects:   KytyPS5, an open-source PS5 emulator in C++, where I contribute fixes',
-    'PS5 Shader Lab, a C++20 shader regression tool',
+    'beyond the web: low-level code, emulation and C++, just for fun',
+    'projects:   PS5 Shader Lab, a C++20 shader regression tool',
     'Learning KytyPS5, a course on how a PS5 emulator works',
     'GoWAN, multi-WAN SOCKS5 in Go for OpenWrt',
     'openingh.nvim (163 stars) and neogruvbox.nvim',
     'merged patches in Preact, LunarVim, ani-cli and Live Server',
-    'all of it at github.com/Almo7aya',
+    'github.com/Almo7aya',
   ].join('  *  ');
   const bytes = [...scroll].map(ch => { const i = CP437.indexOf(ch); if (i < 0) throw new Error(`not in CP437: ${ch}`); return i; });
   // part 5 is 32 bars; the scroller moves 3 px per tick, 16 px per character, and starts off-screen right

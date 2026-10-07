@@ -5,7 +5,7 @@ import { getPosts } from '../lib/posts';
 export function GET(context) {
   return rss({
     title: 'almo7aya.dev',
-    description: 'Ali Almohaya: staff web engineer at Anghami & OSN+. Video player, DRM and TV apps by day; emulators and C++ after hours.',
+    description: 'Ali Almohaya: Staff Web Engineer at Anghami & OSN+, building web and smart-TV streaming apps, specialist in video playback and DRM. Beyond the web: low-level programming, emulation, C++ and graphics.',
     site: context.site,
     items: getPosts().map(p => ({ title: p.title, pubDate: p.date, description: p.description, link: `/posts/${p.slug}/` })),
   });

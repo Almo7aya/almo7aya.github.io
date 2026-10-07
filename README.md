@@ -31,7 +31,7 @@ src/posts/           blog posts (markdown)
 
 ## 7OS commands
 
-`help` · `dir` · `type FILE` (or just `about`, `work`, `hobbies`, `github`, `patches`, `readme`) ·
+`help` · `dir` · `type FILE` (or just `about`, `work`, `projects`, `github`, `patches`, `readme`) ·
 `type source.asm` (the OS reads its own source off the disk) · `demo` (mode 13h plasma, palette
 rotation, font ROM text) · `regs` · `ints` (the IVT, and which vectors 7OS hooked) · `uptime` ·
 `time` · `ver` · `clear` · `7` · `panic` · `reboot`

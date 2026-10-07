@@ -1,0 +1,13 @@
+{
+  "id": "elks",
+  "title": "ELKS 0.9.2",
+  "image": "elks.img",
+  "drive": "floppy",
+  "description": "real Linux-like kernel for the 8086: ELKS, prebuilt from ghaerr/elks (GPL-2.0)",
+  "keys": "login as root, try ls /bin, ps, uname -a",
+  "license": "GPL-2.0",
+  "source": "https://github.com/ghaerr/elks/releases/tag/v0.9.2",
+  "url": "https://github.com/ghaerr/elks/releases/download/v0.9.2/fd1440.img",
+  "size": 1474560,
+  "sha256": "bb4e3ac26f2a40352a5949a447fb7391ee4f1cb7ad80269d691f522c82a189a4"
+}

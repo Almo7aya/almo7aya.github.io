@@ -9,12 +9,12 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
 ---
 <!doctype html>
 <html lang="en">
-<Head title="Almo7aya · 7OS" description="Ali Almohaya: staff web engineer at Anghami and OSN+. This site boots 7OS, a tiny real-mode OS written in assembly, on an 8086 emulator in your browser." />
+<Head title="Almo7aya · 8086 PC" description="Ali Almohaya: Staff Web Engineer at Anghami and OSN+, video playback and DRM. This site is an 8086 PC emulated in your browser, booting a demo, an OS, a GUI, games and a DRM video player, all written in assembly." />
 <body>
 
 <header class="title">
   <span class="name">Almo<span class="s7">7</span>aya</span>
-  <span class="who">Ali Almohaya · staff web engineer @ Anghami &amp; OSN+</span>
+  <span class="who">Ali Almohaya · Staff Web Engineer @ Anghami &amp; OSN+</span>
   <span class="mode" id="diskTitle">8086 · real mode</span>
   <a class="ghb" href="https://github.com/Almo7aya">github.com/Almo7aya ↗</a>
 </header>
@@ -35,6 +35,19 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
         <p class="bm-k">↑↓ select · Enter boot · Esc cancel</p>
       </div>
     </div>
+    <div class="touchkeys" id="touchKeys" aria-label="on-screen keys">
+      <button type="button" data-kbd title="open the keyboard">⌨</button>
+      <button type="button" data-key="Escape">Esc</button>
+      <button type="button" data-key="Tab">Tab</button>
+      <button type="button" data-key="ArrowLeft" aria-label="left">←</button>
+      <button type="button" data-key="ArrowUp" aria-label="up">↑</button>
+      <button type="button" data-key="ArrowDown" aria-label="down">↓</button>
+      <button type="button" data-key="ArrowRight" aria-label="right">→</button>
+      <button type="button" data-key="Space">Space</button>
+      <button type="button" data-key="Enter">Enter</button>
+      <button type="button" data-boot>F12</button>
+      <input id="softKbd" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="type into the PC">
+    </div>
   </section>
 
   <section class="win" id="wMsgs" aria-label="Messages">
@@ -52,7 +65,7 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
     <span class="t">Interrupt list · <b>ALMO7AYA.LST</b></span><span class="r">tabs</span>
     <div class="tabs" role="tablist">
       <button type="button" role="tab" aria-selected="true" data-doc="work">INT 7Ch work</button>
-      <button type="button" role="tab" aria-selected="false" data-doc="hobbies">INT 7Dh after hours</button>
+      <button type="button" role="tab" aria-selected="false" data-doc="hobbies">INT 7Dh open source</button>
       <button type="button" role="tab" aria-selected="false" data-doc="patches">patches</button>
       <button type="button" role="tab" aria-selected="false" data-doc="posts">posts</button>
     </div>
@@ -60,31 +73,41 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
 <pre class="doc" id="d-work" role="tabpanel"><span class="sep">--------W-7C00---------------------------------</span>
 <span class="hd">INT 7C - ALMO7AYA - <b>WEB &amp; TV APPS</b></span>
 	<span class="k">AH</span> = 00h
-<span class="k">Desc:</span>	streaming apps for the web and for TVs,
-	at Anghami and OSN+
-<span class="k">SeeAlso:</span> AH=01h,AH=02h
+<span class="k">Desc:</span>	Staff Web Engineer at Anghami and OSN+:
+	the streaming apps, on the web and on
+	smart TVs
+<span class="k">SeeAlso:</span> AH=01h,AH=02h,AH=03h
 
 <span class="sep">--------W-7C01---------------------------------</span>
 <span class="hd">INT 7C - ALMO7AYA - <b>VIDEO PLAYBACK</b></span>
 	<span class="k">AH</span> = 01h
 <span class="k">Return:</span> CF clear if the video is playing
 	CF set if it is buffering (see Watch)
-<span class="k">Desc:</span>	the video player: getting playback to
-	start fast and stay smooth
+<span class="k">Desc:</span>	videos that start fast and play smoothly
+	on every browser and TV
 
 <span class="sep">--------W-7C02---------------------------------</span>
 <span class="hd">INT 7C - ALMO7AYA - <b>DRM</b></span>
 	<span class="k">AH</span> = 02h
-<span class="k">Desc:</span>	protected content: getting encrypted video
-	to play wherever people watch
-<span class="k">SeeAlso:</span> AH=01h</pre>
+<span class="k">Desc:</span>	protected content that plays wherever
+	people watch
+<span class="k">SeeAlso:</span> AH=01h
+
+<span class="sep">--------W-7C03---------------------------------</span>
+<span class="hd">INT 7C - ALMO7AYA - <b>SKILLS</b></span>
+	<span class="k">AH</span> = 03h
+<span class="k">Return:</span> web:     TypeScript, JavaScript, React,
+	         Preact, Node.js, Astro
+	systems: C++, Go, Rust, Lua
+	infra:   Docker, GitHub Actions, Linux,
+	         OpenWrt</pre>
 <pre class="doc" id="d-hobbies" role="tabpanel" hidden><span class="sep">--------H-7D00---------------------------------</span>
-<span class="hd">INT 7D - ALMO7AYA - <b>7OS</b></span>
+<span class="hd">INT 7D - ALMO7AYA - <b>THIS 8086 PC</b></span>
 	<span class="k">AH</span> = 00h
-<span class="k">Desc:</span>	the OS on the screen above: two stages, NASM,
-	8086 real mode. the 8086 it runs on is
-	emulated in JavaScript, also written for
-	this site
+<span class="k">Desc:</span>	the disks on the screen above: an OS, a
+	GUI, a demo, games and a DRM player, all
+	8086 assembly, on an 8086 PC emulated in
+	JavaScript, also written for this site
 <span class="k">Link:</span>	<a href="/os/almo7aya.asm">almo7aya.asm</a> · <a href="/os/almo7aya.img">almo7aya.img</a>
 
 <span class="sep">--------H-7D01---------------------------------</span>
@@ -164,15 +187,21 @@ const dosName = (s: string, ext: string) => s.toUpperCase().replace(/[^A-Z0-9]/g
     <section class="win watch" id="wWatch" aria-label="Watch">
       <span class="t">Watch · <b>now playing</b></span>
       <div class="tv" aria-hidden="true">
-        <div class="pic" id="pic"><img id="girl" src="/girl/still.jpg" width="468" height="468" alt=""></div>
-        <div class="buf">buffering…</div>
+        <div class="pic" id="pic">
+          <canvas id="tvCv"></canvas><img id="girl" src="/girl/still.jpg" width="468" height="468" alt="">
+          <div class="buf"><i></i></div>
+          <div class="osd">
+            <span class="ttl">me.mp4</span><span class="q">4K · HDR</span>
+            <div class="pbar" aria-label="Playback"><span class="track"><i id="pfill"></i></span><span id="ptime">0:00</span></div>
+          </div>
+        </div>
+        <span class="led"></span>
       </div>
       <div>
         <p class="x">me.state = <b id="mood">CALM</b></p>
         <p class="x">player = <b id="pstate">▶ playing</b></p>
         <p class="x">drm.license = <b>OK</b></p>
       </div>
-      <div class="pbar" aria-label="Playback"><span id="ptime">0:00</span><span class="track"><i id="pfill"></i></span><span class="q">1080p</span></div>
     </section>
 
     <section class="win gh" id="wGit" aria-label="GitHub">

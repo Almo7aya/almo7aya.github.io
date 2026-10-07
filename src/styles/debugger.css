@@ -3,7 +3,7 @@ html, body { height: 100%; }
 body { overflow: hidden; display: flex; flex-direction: column; }
 .title, .status { flex: 0 0 auto; }
 .desk { flex: 1; min-height: 0; padding: 18px 14px 14px; display: grid; gap: 20px 14px;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(280px, 320px);
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, .95fr) minmax(360px, .72fr);
   grid-template-rows: auto minmax(0, 1fr) minmax(0, .62fr);
   grid-template-areas: "regs code right" "screen code right" "msgs docs right"; }
 #wRegs { grid-area: regs; } #wScreen { grid-area: screen; } #wMsgs { grid-area: msgs; }
@@ -126,23 +126,41 @@ body { overflow: hidden; display: flex; flex-direction: column; }
 .log div { white-space: pre-wrap; }
 .log .w { color: var(--white); } .log .y { color: var(--yellow); } .log .r { color: var(--red); } .log .g { color: var(--green); } .log .c { color: var(--cyan); }
 
-/* watch: the girl plays as a video on a tiny TV */
-.watch { flex-direction: row; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
-.tv { position: relative; flex: 0 0 auto; width: 104px; padding: 5px; border: 3px solid #777; border-radius: 10px 10px 8px 8px; background: #111; }
-.tv::after { content: ""; position: absolute; left: 50%; bottom: -9px; width: 36px; height: 6px; margin-left: -18px; background: #777; border-radius: 0 0 3px 3px; }
-.watch img { display: block; width: 100%; height: auto; filter: invert(1) grayscale(1) contrast(1.25); border-radius: 4px; }
+/* watch: the girl plays as a video on a smart TV, with the player's on-screen controls */
+.watch { flex-direction: row; flex-wrap: wrap; gap: 10px 14px; align-items: center; }
+/* a flat 16:9 panel: hairline bezel, a status LED, a slim pedestal stand */
+.tv { position: relative; flex: 0 0 auto; width: min(62%, 250px); padding: 3px 3px 5px; margin-bottom: 14px; border-radius: 3px;
+  background: #0b0b0c; box-shadow: 0 0 0 1px #2c2c30, 0 10px 24px -12px rgba(120, 170, 255, .35); }
+.tv::before { content: ""; position: absolute; left: 50%; bottom: -10px; width: 6px; height: 10px; margin-left: -3px; background: linear-gradient(#2a2a2e, #1a1a1c); }
+.tv::after { content: ""; position: absolute; left: 50%; bottom: -13px; width: 64px; height: 3px; margin-left: -32px; background: #2a2a2e; border-radius: 2px; }
+.tv .led { position: absolute; left: 50%; bottom: 1px; width: 3px; height: 2px; margin-left: -1.5px; border-radius: 1px; background: #8ef; opacity: .7; }
+.watch.stalled .tv .led { background: #f55; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: .15; } }
+.tv .pic { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #f2f2f0; }
+.tv canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: none; }
+.tv canvas.ready { display: block; }
+.tv canvas.ready + img { display: none; }
+.watch img { display: block; width: 56%; height: 100%; margin: 0 auto; object-fit: cover; filter: grayscale(1); }
 .watch .pic.shake { animation: shake .3s steps(2) 3; }
-@keyframes shake { 50% { transform: translate(-3px, 1px); } }
-.tv .buf { position: absolute; inset: 5px; display: none; place-items: center; background: rgba(0, 0, 0, .55); color: var(--yellow); font-size: 11px; border-radius: 4px; }
+@keyframes shake { 50% { transform: translate(-2px, 1px); } }
+/* the player's loading ring while it buffers */
+.tv .buf { position: absolute; inset: 0; display: none; place-items: center; }
+.tv .buf i { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .3); border-top-color: #fff; animation: spin .9s linear infinite;
+  box-shadow: 0 0 0 6px rgba(0, 0, 0, .45), inset 0 0 0 6px rgba(0, 0, 0, .45); }
+@keyframes spin { to { transform: rotate(360deg); } }
 .watch.stalled .tv .buf { display: grid; }
+/* on-screen display: title, quality and the scrub bar over a soft gradient, in a TV app's sans */
+.tv .osd { position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 7px 5px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px;
+  font: 500 9.5px/1.2 system-ui, -apple-system, "Segoe UI", sans-serif; color: #fff; background: linear-gradient(transparent, rgba(0, 0, 0, .62)); }
+.tv .osd .ttl { flex: 1; }
+.tv .osd .q { color: rgba(255, 255, 255, .7); font-size: 8.5px; letter-spacing: .04em; }
+.tv .pbar { flex: 1 0 100%; display: flex; align-items: center; gap: 6px; font-size: 8.5px; font-variant-numeric: tabular-nums; }
+.tv .pbar .track { flex: 1; height: 3px; border-radius: 2px; background: rgba(255, 255, 255, .3); overflow: hidden; }
+.tv .pbar .track i { display: block; height: 100%; width: 0; background: #e33; }
+.watch.stalled .tv .pbar .track i { background: #fff; }
 .watch .x { font-size: 12.5px; line-height: 1.7; }
 .watch .x b { font-weight: 400; color: var(--green); }
 .watch .x b.p { color: var(--red); }
-.pbar { flex: 1 0 100%; display: flex; align-items: center; gap: 8px; font-size: 11.5px; margin-top: 4px; }
-.pbar .track { flex: 1; height: 6px; background: #222; border: 1px solid var(--dgray); }
-.pbar .track i { display: block; height: 100%; width: 0; background: var(--red); }
-.watch.stalled .pbar .track i { background: var(--yellow); }
-.pbar .q { color: var(--dgray); }
 
 /* github */
 .gh .big { font: 400 21px/1.1 var(--dos); color: var(--yellow); text-decoration: none; display: inline-block; margin-bottom: 4px; }
@@ -162,15 +180,47 @@ body { overflow: hidden; display: flex; flex-direction: column; }
   body { overflow: auto; }
   .title { position: sticky; top: 0; z-index: 5; }
   .status { position: sticky; bottom: 0; z-index: 5; }
-  .desk { grid-template-columns: 1fr; grid-template-rows: none; grid-template-areas: "screen" "regs" "right" "code" "docs" "msgs"; row-gap: 26px; }
+  body { overflow-x: hidden; }
+  .desk { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "screen" "regs" "right" "code" "docs" "msgs"; row-gap: 26px; }
   #wCode, #wDocs { grid-row: auto; }
-  #wScreen { height: min(70vw, 70vh); min-height: 220px; }
+  /* the screen window is exactly as tall as its 4:3 picture */
+  #wScreen { height: auto; }
+  .crt { flex: none; aspect-ratio: 4 / 3; max-height: 80vh; }
   #wCode .scroll { max-height: 60vh; }
   #wDocs .scroll { max-height: 70vh; }
   #wMsgs .scroll { max-height: 10em; }
   .right > #wData { flex: 0 0 auto; }
   #wData .scroll { max-height: 40vh; }
+  .regs { overflow-x: auto; }
+  .status { overflow-x: auto; scrollbar-width: none; }
+  .status::-webkit-scrollbar { display: none; }
   .status .st, .status .opt { display: none; }
+}
+/* tablets: the screen across the top, then two columns */
+@media (min-width: 740px) and (max-width: 1100px) {
+  .desk { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "screen screen" "regs regs" "code right" "docs msgs"; column-gap: 14px; }
+}
+/* phones */
+@media (max-width: 600px) {
+  .desk { padding: 16px 8px 10px; row-gap: 22px; }
+  .win > .t { max-width: calc(100% - 20px); overflow: hidden; text-overflow: ellipsis; }
+  #wScreen > .r #kbdHint { display: none; }
+  #wScreen > .t { max-width: calc(100% - 150px); }
+  .regs { font-size: 11.5px; }
+  .watch .tv { width: 100%; max-width: 420px; margin: 0 auto 14px; }
+  .watch .tv .osd { font-size: 11px; padding: 18px 9px 7px; }
+  .watch .tv .osd .q, .watch .tv .pbar { font-size: 10px; }
+  .watch > div:not(.tv) { display: flex; flex-wrap: wrap; gap: 0 14px; }
+}
+
+/* touch devices: keys a soft keyboard doesn't have, and a button that opens it */
+.touchkeys { display: none; }
+@media (pointer: coarse) {
+  .touchkeys { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; position: relative; }
+  .touchkeys button { flex: 1 0 auto; min-width: 42px; min-height: 38px; padding: 0 8px; color: var(--white); background: #111; border: 1px solid var(--dgray); font: inherit; font-size: 13px; touch-action: manipulation; }
+  .touchkeys button:active { background: var(--cyan2); color: var(--bg); border-color: var(--cyan2); }
+  .touchkeys [data-kbd] { color: var(--yellow); }
+  .touchkeys input { position: absolute; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
 }
 
 .doc { font-family: inherit; margin: 0; }
