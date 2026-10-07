@@ -1,0 +1,8 @@
+{
+  "id": "invaders",
+  "title": "INVADERS · 512 bytes",
+  "image": "invaders.img",
+  "drive": "hdd",
+  "description": "space invaders in a single 512-byte boot sector: the invaders exist only in video memory and march by block moves",
+  "keys": "left/right move, space fires, any key restarts"
+}

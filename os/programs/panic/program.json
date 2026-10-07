@@ -1,0 +1,8 @@
+{
+  "id": "panic",
+  "title": "PANIC · 512 bytes",
+  "image": "panic.img",
+  "drive": "hdd",
+  "description": "an original 512-byte boot sector game: the mascot dodges falling bugs and SEGFAULTs that rain faster and thicker; one hit and she panics",
+  "keys": "hold left/right to run, space restarts"
+}

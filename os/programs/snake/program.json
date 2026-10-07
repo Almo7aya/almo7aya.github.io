@@ -1,0 +1,8 @@
+{
+  "id": "snake",
+  "title": "SNAKE · 512 bytes",
+  "image": "snake.img",
+  "drive": "hdd",
+  "description": "classic snake in a single 512-byte boot sector: the screen is the board, the body is a ring buffer",
+  "keys": "arrows steer, any key restarts"
+}
